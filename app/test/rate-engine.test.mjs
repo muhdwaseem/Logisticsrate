@@ -1,0 +1,142 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { chargeableWeight, pickRateBreak, computeQuote, round2, convert } from '../src/rate-engine.mjs';
+import { aramexContract } from '../src/seed-aramex.mjs';
+
+const DATA = {
+  contract: aramexContract.contract,
+  lanes: aramexContract.lanes,
+  accessorials: aramexContract.accessorials,
+};
+
+test('chargeableWeight — air uses higher of gross vs volumetric (/6000)', () => {
+  // 100x80x60 cm = 480000 cm³ -> /6000 = 80 kg volumetric; gross 50 -> chargeable 80
+  const r = chargeableWeight({ mode: 'air', pieces: [{ lengthCm: 100, widthCm: 80, heightCm: 60, weightKg: 50, quantity: 1 }] });
+  assert.equal(r.grossKg, 50);
+  assert.equal(r.volumetricKg, 80);
+  assert.equal(r.chargeable, 80);
+  assert.equal(r.basis, 'volumetric weight');
+});
+
+test('chargeableWeight — land uses /4000 and the 1 CBM = 250 kg floor', () => {
+  // 1 CBM box, 120 kg gross. /4000 => 250 kg. CBM*250 => 250 kg. chargeable 250
+  const r = chargeableWeight({ mode: 'land', pieces: [{ lengthCm: 100, widthCm: 100, heightCm: 100, weightKg: 120, quantity: 1 }] });
+  assert.equal(r.volumeCbm, 1);
+  assert.equal(r.volumetricKg, 250);
+  assert.equal(r.chargeable, 250);
+});
+
+test('chargeableWeight — sea returns revenue tons (W/M)', () => {
+  const r = chargeableWeight({ mode: 'sea', grossWeightKg: 1500, volumeCbm: 3.2 });
+  assert.equal(r.weightTons, 1.5);
+  assert.equal(r.revenueTons, 3.2); // volume wins
+});
+
+test('pickRateBreak — selects the right band', () => {
+  const breaks = [{ upTo: 500, rate: 1.5 }, { upTo: 2000, rate: 1.4 }, { upTo: null, rate: 1.2 }];
+  assert.equal(pickRateBreak(breaks, 300).rate, 1.5);
+  assert.equal(pickRateBreak(breaks, 1500).rate, 1.4);
+  assert.equal(pickRateBreak(breaks, 9000).rate, 1.2);
+});
+
+test('LTL Riyadh 1500 kg — base 2100 + 10% FSC + BOE 175 + 5% VAT', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'LTL', origin: 'Jebel Ali', destination: 'KSA - Riyadh',
+    grossWeightKg: 1500, options: { applyVat: true },
+  }, DATA);
+
+  const base = q.lines.find(l => l.code === 'BASE');
+  const fsc = q.lines.find(l => l.code === 'FSC');
+  const boe = q.lines.find(l => l.code === 'BOE_JEBELALI_NONDUTY');
+
+  assert.equal(base.amount, 2100);        // 1500 kg x 1.40/kg (1001-2000 band)
+  assert.equal(fsc.amount, 210);          // 10% of base
+  assert.equal(boe.amount, 175);          // non-duty-paid ex Jebel Ali
+  assert.equal(q.subtotal, 2485);         // 2100 + 210 + 175
+  assert.equal(q.vat, round2(2485 * 0.05));
+  assert.equal(q.total, round2(2485 * 1.05));
+});
+
+test('LTL Bahrain 50 kg — minimum charge 200 applies', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'LTL', origin: 'Jebel Ali', destination: 'Bahrain',
+    grossWeightKg: 50, options: { applyVat: false },
+  }, DATA);
+  const base = q.lines.find(l => l.code === 'BASE');
+  assert.equal(base.amount, 200);
+  assert.equal(base.detail.includes('min charge'), true);
+  assert.equal(q.vat, 0);
+});
+
+test('FTL RUH via Batha, reefer 13.6m — flat 6460, no FSC on FTL', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'FTL', origin: 'Jebel Ali', destination: 'RUH via Batha',
+    equipment: 'reefer-13.6', containers: 1, options: { applyVat: false },
+  }, DATA);
+  const base = q.lines.find(l => l.code === 'BASE');
+  assert.equal(base.amount, 6460);
+  assert.equal(q.lines.some(l => l.code === 'FSC'), false);
+});
+
+test('Air freight — quote-based lane prices from manual buyRate + markup', () => {
+  const q = computeQuote({
+    mode: 'air', loadType: 'GENERAL', destination: 'Air - any destination',
+    grossWeightKg: 250, buyRate: 3000, markupType: 'percent', markupValue: 15,
+    options: { applyVat: false },
+  }, DATA);
+  const base = q.lines.find(l => l.code === 'BASE');
+  assert.equal(base.amount, 3450); // 3000 + 15%
+});
+
+test('Air freight — missing buyRate produces a warning, not a crash', () => {
+  const q = computeQuote({
+    mode: 'air', loadType: 'GENERAL', destination: 'Air - any destination', grossWeightKg: 100,
+  }, DATA);
+  assert.equal(q.warnings.length > 0, true);
+  assert.equal(q.total, 0);
+});
+
+test('Insurance — 2.5% of declared cargo value', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'LTL', destination: 'Qatar - Doha', origin: 'Jebel Ali',
+    grossWeightKg: 800, options: { insure: true, cargoValueAed: 40000, applyVat: false },
+  }, DATA);
+  const ins = q.lines.find(l => l.code === 'INSURANCE');
+  assert.equal(ins.amount, 1000); // 2.5% of 40,000
+});
+
+test('Dangerous goods handling — flat 225 when flagged', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'LTL', destination: 'Kuwait', origin: 'Jebel Ali',
+    grossWeightKg: 600, options: { dangerousGoods: true, applyVat: false },
+  }, DATA);
+  assert.equal(q.lines.find(l => l.code === 'DGR').amount, 225);
+});
+
+test('Collection charge — Fujairah 10 Ton, AED 1000, only when selected', () => {
+  const base = {
+    mode: 'land', loadType: 'LTL', destination: 'Bahrain', origin: 'Jebel Ali', grossWeightKg: 600,
+    options: { applyVat: false, pickupEmirate: 'Fujairah', pickupTruckType: '10T' },
+  };
+  const without = computeQuote(base, DATA);
+  assert.equal(without.lines.some(l => l.code.startsWith('COLLECTION_')), false);
+
+  const withSel = computeQuote({ ...base, selectedAccessorials: ['COLLECTION_FUJAIRAH_10T'] }, DATA);
+  assert.equal(withSel.lines.find(l => l.code === 'COLLECTION_FUJAIRAH_10T').amount, 1000);
+});
+
+test('Currency conversion — USD accessorial shown in AED quote', () => {
+  const q = computeQuote({
+    mode: 'sea', loadType: 'LCL', destination: 'Sea LCL - any destination',
+    grossWeightKg: 2000, volumeCbm: 5, buyRate: 1200,
+    options: { originalDocsReceived: false, applyVat: false },
+  }, DATA);
+  const nr = q.lines.find(l => l.code === 'SEA_DOCS_DEPOSIT_NR');
+  assert.equal(nr.currency, 'USD');
+  assert.equal(nr.amount, round2(75 * 3.6725)); // -> AED
+});
+
+test('convert() round-trips via AED', () => {
+  assert.equal(convert(100, 'USD', 'USD', {}), 100);
+  assert.equal(convert(1, 'USD', 'AED', { USD: 3.6725 }), 3.67);
+});

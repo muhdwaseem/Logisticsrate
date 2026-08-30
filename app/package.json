@@ -1,0 +1,14 @@
+{
+  "name": "freight-rate-system",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Freight rate management & quotation engine for logistics SMEs — starter build seeded from the Aramex reference contract.",
+  "engines": { "node": ">=22.5.0" },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "test": "node --test",
+    "reset-db": "node -e \"import('node:fs').then(fs=>{fs.rmSync(new URL('../data/freight.db',import.meta.url),{force:true});fs.rmSync(new URL('../data/freight.db-wal',import.meta.url),{force:true});fs.rmSync(new URL('../data/freight.db-shm',import.meta.url),{force:true});console.log('db reset')})\""
+  }
+}

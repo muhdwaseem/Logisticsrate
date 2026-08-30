@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Freight Rate &amp; Quotation System</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">◆</span>
+      <div>
+        <strong>Freight Rate &amp; Quotation System</strong>
+        <small id="contractLabel">loading…</small>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button class="tab active" data-view="quote">New quote</button>
+      <button class="tab" data-view="saved">Saved quotes</button>
+      <button class="tab" data-view="rates">Rate cards</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ============ NEW QUOTE ============ -->
+    <section id="view-quote" class="view active">
+      <div class="cols">
+        <form id="quoteForm" class="card">
+          <h2>Shipment</h2>
+
+          <label>Rate agreement
+            <select id="contractId" required></select>
+          </label>
+
+          <div class="row3">
+            <label>Mode
+              <select id="mode">
+                <option value="land">Land</option>
+                <option value="air">Air</option>
+                <option value="sea">Sea</option>
+                <option value="customs">Customs</option>
+              </select>
+            </label>
+            <label>Load type
+              <select id="loadType"></select>
+            </label>
+            <label>Containers / trucks
+              <input id="containers" type="number" min="1" value="1" />
+            </label>
+          </div>
+
+          <div class="row2">
+            <label>Origin
+              <input id="origin" value="Jebel Ali" list="originList" />
+              <datalist id="originList">
+                <option>Jebel Ali</option><option>Dubai</option><option>Sharjah - SAIF Zone</option>
+                <option>Sharjah - Hamriya</option><option>DAFZA</option><option>Ajman</option>
+                <option>Umm Al Quwain</option><option>Ras Al Khaimah</option><option>Fujairah</option>
+              </datalist>
+            </label>
+            <label>Destination
+              <select id="destination"></select>
+            </label>
+          </div>
+
+          <label id="equipmentWrap" hidden>Equipment
+            <select id="equipment"></select>
+          </label>
+
+          <label id="buyRateWrap" hidden>Carrier buy rate (this lane is quote-based)
+            <input id="buyRate" type="number" min="0" step="0.01" placeholder="e.g. 3200.00" />
+          </label>
+
+          <fieldset>
+            <legend>Cargo</legend>
+            <div class="seg">
+              <label class="radio"><input type="radio" name="cargoMode" value="pieces" checked /> Piece list</label>
+              <label class="radio"><input type="radio" name="cargoMode" value="summary" /> Totals only</label>
+            </div>
+
+            <div id="piecesBox">
+              <table class="pieces">
+                <thead><tr><th>L cm</th><th>W cm</th><th>H cm</th><th>Kg</th><th>Qty</th><th></th></tr></thead>
+                <tbody id="piecesBody"></tbody>
+              </table>
+              <button type="button" id="addPiece" class="link">+ add piece</button>
+            </div>
+
+            <div id="summaryBox" class="row2" hidden>
+              <label>Gross weight (kg)<input id="grossWeightKg" type="number" min="0" step="0.01" /></label>
+              <label>Volume (CBM)<input id="volumeCbm" type="number" min="0" step="0.001" /></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Pricing &amp; options</legend>
+            <div class="row3">
+              <label>Markup
+                <select id="markupType">
+                  <option value="">none</option>
+                  <option value="percent">%</option>
+                  <option value="flat">flat</option>
+                </select>
+              </label>
+              <label>Markup value<input id="markupValue" type="number" min="0" step="0.01" /></label>
+              <label>Quote currency
+                <select id="quoteCurrency"><option>AED</option><option>USD</option></select>
+              </label>
+            </div>
+            <div class="checks">
+              <label><input type="checkbox" id="applyVat" checked /> Apply VAT</label>
+              <label><input type="checkbox" id="dangerousGoods" /> Dangerous goods</label>
+              <label><input type="checkbox" id="originDutyPaid" /> Duty-paid origin</label>
+              <label><input type="checkbox" id="originalDocsReceived" checked /> Original docs received (sea)</label>
+              <label><input type="checkbox" id="insure" /> Insure cargo</label>
+              <label class="grow">Cargo value (AED)<input id="cargoValueAed" type="number" min="0" step="0.01" /></label>
+            </div>
+            <div class="row2">
+              <label>Pickup emirate
+                <select id="pickupEmirate">
+                  <option value="">—</option><option>Sharjah</option><option>Ajman</option>
+                  <option>UAQ</option><option>RAK</option><option>Fujairah</option>
+                </select>
+              </label>
+              <label>Pickup truck
+                <select id="pickupTruckType">
+                  <option value="">—</option><option value="3T">3 Ton</option>
+                  <option value="10T">10 Ton</option><option value="40FT">40ft trailer</option>
+                </select>
+              </label>
+            </div>
+            <div id="accessorialPicks" class="checks"></div>
+          </fieldset>
+
+          <label>Customer
+            <input id="customer" placeholder="Consignor / account name" />
+          </label>
+
+          <div class="actions">
+            <button type="submit" class="primary">Price it</button>
+            <button type="button" id="saveBtn" class="ghost" disabled>Save quote</button>
+          </div>
+        </form>
+
+        <div class="card result" id="resultCard">
+          <h2>Quotation</h2>
+          <div id="resultEmpty" class="muted">Fill in the shipment and press <strong>Price it</strong>.</div>
+          <div id="resultBody" hidden>
+            <div class="chargeable" id="chargeableLine"></div>
+            <table class="breakdown">
+              <thead><tr><th>Charge</th><th>Detail</th><th class="num">Amount</th></tr></thead>
+              <tbody id="breakdownBody"></tbody>
+              <tfoot id="breakdownFoot"></tfoot>
+            </table>
+            <div id="warnBox" class="warn" hidden></div>
+            <div id="savedInfo" class="saved-info" hidden></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SAVED QUOTES ============ -->
+    <section id="view-saved" class="view">
+      <div class="card">
+        <h2>Saved quotes</h2>
+        <table class="grid" id="quotesTable">
+          <thead><tr><th>Ref</th><th>Customer</th><th>Lane</th><th>Mode</th><th class="num">Total</th><th>Status</th><th></th></tr></thead>
+          <tbody id="quotesBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ RATE CARDS ============ -->
+    <section id="view-rates" class="view">
+      <div class="card">
+        <h2>Rate card <small id="ratesContractName"></small></h2>
+        <p class="muted">Lanes and accessorials from the signed contract. Edit the JSON and save to update pricing immediately.</p>
+        <div id="ratesSummary"></div>
+        <details>
+          <summary>Edit rate card JSON</summary>
+          <textarea id="rateJson" spellcheck="false"></textarea>
+          <div class="actions">
+            <button type="button" id="saveRates" class="primary">Save rate card</button>
+            <span id="rateSaveMsg" class="muted"></span>
+          </div>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
