@@ -1,30 +1,27 @@
 /**
- * Seeded UAE land-transport tariff — one combined rate card covering:
- *   - cross-border LTL & FTL from the Aramex / Modern Line Distribution
- *     Services Agreement (Part C — Rates for Land Freight), and
- *   - local intra-UAE per-trip haulage from the White Eagle Transport
- *     quotation (TRN 100052344700003).
+ * Seeded UAE land-transport tariff — one combined rate card covering
+ * cross-border LTL & FTL road freight and local intra-UAE per-trip haulage.
  * The load type (LTL / FTL / LOCAL) + destination selects which lanes apply.
- * Air / sea / customs remain quote-based.
  */
 
 // Provider identity — pre-fills the company profile / letterhead on first run.
+// Generic by default; edit it in Settings for the operating company.
 export const provider = {
-  legal_name: 'Aramex Emirates LLC',
+  legal_name: 'Freight & Trucking Quote',
   display_name: 'Freight & Trucking Quote',
-  address: 'PO Box 1216\nBuilding and Warehouse No. 3, Um Ramool',
-  city: 'Dubai',
+  address: '',
+  city: '',
   country: 'United Arab Emirates',
-  email: 'DXBJALSALES@aramex.com',
-  phone: '+971 600 544000',
-  website: 'aramex.com',
+  email: '',
+  phone: '',
+  website: '',
   base_currency: 'AED',
   default_incoterm: 'FCA Jebel Ali',
   tax_label: 'VAT',
   tax_rate_pct: 5,
   quote_footer_notes: [
-    'Air & Sea freight and Customs Clearance are quote-based: a fee quote is issued per shipment for written approval.',
-    'Cross-border moves are governed by the Aramex Services Agreement and its General Terms; local haulage by the carrier’s standard trading conditions.',
+    'Rates in AED and exclusive of customs duties, taxes, storage and regulatory charges unless line-itemed above.',
+    'Cross-border freight is governed by the carrier’s services agreement; local haulage by the carrier’s standard trading conditions.',
   ],
 };
 
@@ -123,14 +120,14 @@ const whiteEagleAccessorials = [
 
 export const defaultTariff = {
   carrier: {
-    name: 'Aramex Emirates LLC',
+    name: 'UAE Road Freight Carrier',
     country: 'AE',
-    contact: '+971 600 544000',
-    email: 'DXBJALSALES@aramex.com',
+    contact: null,
+    email: null,
   },
   contract: {
     name: 'UAE Land Transport — Cross-border & Local',
-    customer: 'Modern Line Distribution LLC',
+    customer: null,
     currency: 'AED',
     commencementDate: '2024-10-11',
     territory: 'United Arab Emirates',
@@ -198,7 +195,7 @@ export const defaultTariff = {
     acc('FSC', 'Fuel surcharge (10%)', 'land', 'percent_of_base', 10, 'AED', 'ltl_only'),
 
     // Bill of Entry / documentation — origin-dependent, per shipment
-    acc('BOE_JEBELALI_NONDUTY', 'BOE + claim ack. — non-duty-paid ex Jebel Ali', 'any', 'per_shipment', 175, 'AED', 'if_origin_jebelali_nonduty'),
+    acc('BOE_NONDUTY', 'BOE + claim acknowledgment — non-duty-paid shipment', 'any', 'per_shipment', 175, 'AED', 'if_xborder_nonduty'),
     acc('BOE_DUTYPAID',         'BOE — duty-paid shipment',                        'any', 'per_shipment', 195, 'AED', 'if_origin_dutypaid'),
     acc('BOE_SAIF',             'Export declaration — SAIF Zone',                  'any', 'per_shipment', 300, 'AED', 'if_origin_saif'),
     acc('BOE_DAFZA',            'Export declaration — DAFZA',                      'any', 'per_shipment', 325, 'AED', 'if_origin_dafza'),

@@ -61,20 +61,19 @@ test('GET /api/health', async () => {
   assert.equal(b.ok, true);
 });
 
-test('GET /api/contracts — seeded Aramex tariff', async () => {
+test('GET /api/contracts — one tariff seeded', async () => {
   const r = await fetch(`${BASE}/api/contracts`);
   const b = await r.json();
   assert.equal(r.status, 200);
   assert.ok(b.length >= 1, 'at least one tariff seeded');
-  assert.match(JSON.stringify(b), /Aramex/);
+  assert.match(JSON.stringify(b), /UAE Land Transport/);
 });
 
-test('GET /api/contracts/1 — full tariff for Modern Line Distribution', async () => {
+test('GET /api/contracts/1 — full combined tariff', async () => {
   const r = await fetch(`${BASE}/api/contracts/1`);
   const b = await r.json();
   assert.equal(r.status, 200);
   assert.ok(Array.isArray(b.data.lanes) && b.data.lanes.length > 0);
-  assert.equal(b.customer, 'Modern Line Distribution LLC');
 });
 
 test('GET /api/contracts/1 — combined tariff has LTL, FTL and LOCAL lanes', async () => {
@@ -189,13 +188,13 @@ test('PATCH /api/quotes/:ref — bad status rejected', async () => {
   assert.equal(r.status, 400);
 });
 
-test('GET /api/quotes/:ref/print — Aramex letterhead, well-formed', async () => {
+test('GET /api/quotes/:ref/print — letterhead, well-formed', async () => {
   const r = await fetch(`${BASE}/api/quotes/${savedRef}/print`);
   const html = await r.text();
   assert.equal(r.status, 200);
   assert.match(html, /Freight Quotation/);
-  assert.match(html, /Aramex/);                       // seeded provider identity
-  assert.doesNotMatch(html, /Carrier \/ contract/i);  // old buy-rate row must stay gone
+  assert.match(html, /Freight &amp; Trucking Quote/);  // seeded (generic) provider identity
+  assert.doesNotMatch(html, /Carrier \/ contract/i);   // old buy-rate row must stay gone
 });
 
 test('PUT /api/contracts/1/data — round-trips an edit', async () => {
