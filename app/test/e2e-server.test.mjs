@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
-import { rmSync } from 'node:fs';
+import { rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 
@@ -189,7 +189,12 @@ test('PUT /api/contracts/1/data — round-trips an edit', async () => {
   assert.equal(r.status, 200);
 });
 
-test('static — index.html served, shows no provenance', async () => {
+test('static — index.html served, shows no provenance', async (t) => {
+  // app/public is the Vite build output; skip if the UI hasn't been built.
+  if (!existsSync(join(__dirname, '..', 'public', 'index.html'))) {
+    t.skip('run `npm run build` first to exercise the static host');
+    return;
+  }
   const r = await fetch(`${BASE}/`);
   const html = await r.text();
   assert.equal(r.status, 200);

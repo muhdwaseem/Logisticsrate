@@ -7,9 +7,10 @@
 #   3. Approve. Render builds and starts the service; the public URL is shown once it is live.
 #      The health check hits /api/health, so the deploy only goes green when the app is really up.
 #
-# The service is a plain node:http server (app/server.mjs) with ZERO npm dependencies,
-# using Node's built-in SQLite. It re-seeds a sample tariff on first boot, so the URL
-# is usable immediately.
+# The service is a plain node:http server (app/server.mjs) with ZERO runtime npm
+# dependencies, using Node's built-in SQLite. It re-seeds a sample tariff on first
+# boot, so the URL is usable immediately. The build step compiles the React frontend
+# (app/web, Vite + TypeScript) into app/public, which the server hosts as static files.
 #
 # PERSISTENCE (important):
 #   The `free` plan has NO persistent disk. data/freight.db lives on ephemeral storage,
@@ -27,7 +28,7 @@ services:
     runtime: node
     plan: free
     rootDir: app                 # package.json + server.mjs live here
-    buildCommand: npm install    # no dependencies; runs in ~1s
+    buildCommand: npm run build  # installs web/ deps and builds the React app into public/
     startCommand: node server.mjs
     healthCheckPath: /api/health
     autoDeploy: true             # redeploy on every push to the default branch

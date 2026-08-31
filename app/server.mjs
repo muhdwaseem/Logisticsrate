@@ -54,6 +54,15 @@ async function serveStatic(req, res) {
     res.writeHead(200, { 'content-type': MIME[extname(full)] || 'application/octet-stream' });
     res.end(data);
   } catch {
+    // SPA fallback: an extension-less path (e.g. /saved, /tariffs) is a
+    // client-side route — hand back index.html so the app can render it.
+    if (!extname(full)) {
+      try {
+        const html = await readFile(join(PUBLIC, 'index.html'));
+        res.writeHead(200, { 'content-type': MIME['.html'] });
+        return res.end(html);
+      } catch { /* fall through to 404 */ }
+    }
     json(res, 404, { error: 'not found' });
   }
 }
