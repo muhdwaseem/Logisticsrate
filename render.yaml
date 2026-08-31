@@ -1,0 +1,43 @@
+# Render Blueprint — one-click deploy for the Freight Rate & Quotation System.
+# Spec: https://render.com/docs/blueprint-spec
+#
+# Deploy:
+#   1. Make sure this file is on your default branch (it is, on `main`).
+#   2. Render dashboard -> New -> Blueprint -> pick the muhdwaseem/Logisticsrate repo.
+#   3. Approve. Render builds and starts the service; the public URL is shown once it is live.
+#      The health check hits /api/health, so the deploy only goes green when the app is really up.
+#
+# The service is a plain node:http server (app/server.mjs) with ZERO npm dependencies,
+# using Node's built-in SQLite. It re-seeds a sample tariff on first boot, so the URL
+# is usable immediately.
+#
+# PERSISTENCE (important):
+#   The `free` plan has NO persistent disk. data/freight.db lives on ephemeral storage,
+#   so saved quotes are lost on every deploy or restart (the app still runs and re-seeds
+#   the sample tariff). Free web services also sleep after 15 min idle.
+#
+#   For durable storage, move to a paid instance and attach a disk:
+#     - change `plan: free` -> `plan: starter`
+#     - uncomment the FREIGHT_DB env var and the `disk:` block below
+#   db.mjs already honours FREIGHT_DB, so no code change is needed.
+
+services:
+  - type: web
+    name: logistics-rate
+    runtime: node
+    plan: free
+    rootDir: app                 # package.json + server.mjs live here
+    buildCommand: npm install    # no dependencies; runs in ~1s
+    startCommand: node server.mjs
+    healthCheckPath: /api/health
+    autoDeploy: true             # redeploy on every push to the default branch
+    envVars:
+      - key: NODE_VERSION
+        value: "22"              # >= 22.5 required for node:sqlite; Render installs latest 22.x
+      # - key: FREIGHT_DB        # uncomment together with the disk below (paid plans only)
+      #   value: /var/data/freight.db
+
+    # disk:                      # requires plan: starter or higher
+    #   name: data
+    #   mountPath: /var/data
+    #   sizeGB: 1

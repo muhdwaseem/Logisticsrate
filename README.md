@@ -45,6 +45,22 @@ npm run dev       # auto-restart on file changes
 npm run reset-db  # wipe data/freight.db and re-seed
 ```
 
+## Deploy it
+
+This is a long-running `node:http` server with a local SQLite file, so it needs a
+host that runs a Node **process** (not a serverless platform like Vercel).
+
+**Render (one click):** `render.yaml` in the repo root is a Blueprint. In the
+Render dashboard → **New → Blueprint** → pick this repo → approve. It builds and
+starts `node server.mjs`, health-checked at `/api/health`.
+
+The `free` plan has no persistent disk — saved quotes reset on restart (the app
+re-seeds automatically). For durable storage switch `plan: free` → `plan: starter`
+and uncomment the `disk:` + `FREIGHT_DB` blocks in `render.yaml`.
+
+Railway / Fly.io / a VPS work the same way: root dir `app`, start `node
+server.mjs`, mount a volume and set `FREIGHT_DB` to a path on it for persistence.
+
 ## What works today
 
 | Area | Status |
