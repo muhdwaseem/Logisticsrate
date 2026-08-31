@@ -18,7 +18,7 @@
     <nav class="tabs">
       <button class="tab active" data-view="quote">New quote</button>
       <button class="tab" data-view="saved">Saved quotes</button>
-      <button class="tab" data-view="rates">Rate cards</button>
+      <button class="tab" data-view="rates">Tariffs</button>
     </nav>
   </header>
 
@@ -29,7 +29,7 @@
         <form id="quoteForm" class="card">
           <h2>Shipment</h2>
 
-          <label>Rate agreement
+          <label>Tariff
             <select id="contractId" required></select>
           </label>
 
@@ -140,12 +140,13 @@
           <div class="actions">
             <button type="submit" class="primary">Price it</button>
             <button type="button" id="saveBtn" class="ghost" disabled>Save quote</button>
+            <span id="priceMsg" class="muted"></span>
           </div>
         </form>
 
         <div class="card result" id="resultCard">
-          <h2>Quotation</h2>
-          <div id="resultEmpty" class="muted">Fill in the shipment and press <strong>Price it</strong>.</div>
+          <h2>Quotation <span id="liveDot" class="live-dot" hidden>live</span></h2>
+          <div id="resultEmpty" class="muted">Fill in the shipment — pricing updates as you type.</div>
           <div id="resultBody" hidden>
             <div class="chargeable" id="chargeableLine"></div>
             <table class="breakdown">
@@ -174,8 +175,8 @@
     <!-- ============ RATE CARDS ============ -->
     <section id="view-rates" class="view">
       <div class="card">
-        <h2>Rate card <small id="ratesContractName"></small></h2>
-        <p class="muted">Lanes and accessorials from the signed contract. Edit the JSON and save to update pricing immediately.</p>
+        <h2>Tariff <small id="ratesContractName"></small></h2>
+        <p class="muted">Lanes and accessorials in this tariff. Edit the JSON and save to update pricing immediately.</p>
         <div id="ratesSummary"></div>
         <details>
           <summary>Edit rate card JSON</summary>

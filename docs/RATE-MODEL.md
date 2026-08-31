@@ -1,11 +1,11 @@
-# Rate model — extracted from `Freight Agreement - Signed.pdf`
+# Rate model — sample tariff
 
-Parties: **Aramex Emirates LLC** (carrier) ⟷ **Modern Line Distribution LLC**
-(customer). Commencement 11/10/2024. Territory UAE. Payment 30 days from invoice.
-Service-fee escalation: CPI or 5%. Currency: AED (some charges USD / KWD).
+A worked UAE-outbound example: carrier ⟷ forwarder tariff, commencement
+11/10/2024, territory UAE, payment 30 days from invoice, service-fee escalation
+CPI or 5%, currency AED (some charges USD / KWD).
 
-The contract's **Appendix 2 – Rates Card** is the priceable content. Everything
-below is transcribed into `app/src/seed-aramex.mjs`.
+The **rates card** is the priceable content. Everything below is encoded in
+`app/src/seed-tariff.mjs`.
 
 ---
 
@@ -55,8 +55,8 @@ volumetric) → multiply per-kg rate → add documentation (BOE) at origin.
 | OMAN | 3065 | 4265 | — |
 
 Notes: BOE AED 175. Demurrage AED 350/day to BAH/KWI/KSA after 48 h at border
-(next day for Muscat). FTL cancellation AED 550 once truck booked. Branded/bonded
-Aramex trucks only; non-branded may incur 3rd-party brokerage. Insurance excluded.
+(next day for Muscat). FTL cancellation AED 550 once truck booked. Bonded carrier
+trucks only; non-bonded may incur 3rd-party brokerage. Insurance excluded.
 
 ## 4. Accessorials / surcharges
 
@@ -95,9 +95,9 @@ Delivery order 7 KD/DO · PWC 18.510 KD/shipment · storage 0.30/50 kg/day after
 ## 5. Quote-based scopes
 
 **Air freight, Sea freight (LCL/FCL) and Customs Clearance** are *not* tariffed
-in the contract — "Aramex shall send a fee quote to the Customer for written
-approval in relation to each Shipment." The engine models these as **quote-based
-lanes**: the forwarder keys the carrier's buy rate, and markup + rule-driven
+here — a fee quote is issued per shipment for written approval. The engine models
+these as **quote-based lanes**: the forwarder keys the carrier's buy rate, and
+markup + rule-driven
 surcharges + VAT are applied automatically.
 
 ## 6. Tax

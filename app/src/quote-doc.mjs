@@ -7,8 +7,6 @@ export function renderQuoteHtml(q, contract) {
   const r = q.result;
   const req = q.request;
   const ccy = r.quoteCurrency || 'AED';
-  const carrier = contract?.carrier || contract?.data?.carrier?.name || '—';
-  const contractName = contract?.name || r.meta?.contract || '—';
 
   const rows = (r.lines || []).map(l => `
     <tr>
@@ -63,13 +61,11 @@ export function renderQuoteHtml(q, contract) {
 
   <div class="grid">
     <div><span>Customer</span><span>${esc(q.customer || '—')}</span></div>
-    <div><span>Carrier / contract</span><span>${esc(carrier)}</span></div>
     <div><span>Mode</span><span>${esc(req.mode)} · ${esc(req.loadType || '')}</span></div>
-    <div><span>Incoterm</span><span>${esc(r.meta?.incoterm || 'EXW')}</span></div>
     <div><span>Origin</span><span>${esc(req.origin || '—')}</span></div>
     <div><span>Destination</span><span>${esc(req.destination || '—')}</span></div>
+    <div><span>Incoterm</span><span>${esc(r.meta?.incoterm || 'EXW')}</span></div>
     <div><span>Chargeable</span><span>${esc(r.chargeableKg)} ${req.mode === 'sea' ? 'RT' : 'kg'} (${esc(r.chargeable?.basis || '')})</span></div>
-    <div><span>Rate agreement</span><span>${esc(contractName)}</span></div>
   </div>
 
   <table>

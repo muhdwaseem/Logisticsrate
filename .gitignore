@@ -6,3 +6,10 @@ data/*.db-shm
 .DS_Store
 .env
 .env.local
+
+# source reference material — never ship
+Freight Agreement - Signed.pdf
+*.pdf
+app/test/*.db
+app/test/*.db-shm
+app/test/*.db-wal

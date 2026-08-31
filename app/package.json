@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Freight rate management & quotation engine for logistics SMEs — starter build seeded from the Aramex reference contract.",
+  "description": "Freight rate management & quotation engine for logistics SMEs — starter build seeded with a sample tariff.",
   "engines": { "node": ">=22.5.0" },
   "scripts": {
     "start": "node server.mjs",

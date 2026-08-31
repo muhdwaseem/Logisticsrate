@@ -1,34 +1,35 @@
 /**
- * Aramex Emirates LLC  <>  Modern Line Distribution LLC
- * "Freight Agreement - Signed.pdf"  —  Appendix 2: Rates Card, transcribed to data.
+ * Sample tariff — a worked example rate card the engine ships seeded with,
+ * so the system is usable the moment it starts.
  *
- * This is the reference rate card the engine is seeded with. Every number
- * below is lifted from the signed contract in the project root. A logistics
- * company using this software would add one such record per carrier contract.
+ * The numbers below are an illustrative UAE-outbound tariff (air / sea / land,
+ * LTL & FTL, with fuel, customs, insurance and collection surcharges). Replace
+ * this record with your own carrier contracts via the Rate cards screen or
+ * `POST /api/contracts` — one record per carrier agreement.
  */
 
-export const aramexContract = {
+export const defaultTariff = {
   carrier: {
-    name: 'Aramex Emirates LLC',
+    name: 'Sample Carrier',
     country: 'AE',
-    contact: '+971 600 544000',
-    email: 'DXBJALSALES@aramex.com',
+    contact: null,
+    email: null,
   },
   contract: {
-    name: 'Aramex × Modern Line Distribution — Freight Services',
-    customer: 'Modern Line Distribution LLC',
+    name: 'Sample Tariff — UAE Outbound 2024',
+    customer: null,
     currency: 'AED',
     commencementDate: '2024-10-11',
     territory: 'United Arab Emirates',
     paymentTerms: '30 days from date of invoice',
     escalation: 'CPI or 5% (whichever, if no % inserted CPI applies)',
-    fscPct: 10,            // "10% FSC will be applicable on the above rates" (Land)
+    fscPct: 10,            // fuel surcharge applied on land base rates
     vatPct: 5,             // UAE VAT
     incoterm: 'FCA Jebel Ali',
     validityDays: 14,
     fx: { AED: 1, USD: 3.6725, KWD: 12.0 },
     notes: [
-      'Air & Sea freight and Customs Clearance are quote-based: Aramex issues a fee quote per shipment for written approval.',
+      'Air & Sea freight and Customs Clearance are quote-based: a fee quote is issued per shipment for written approval.',
       'Air chargeable weight = higher of gross or volumetric (L×W×H cm / 6000).',
       'Land chargeable weight = higher of gross or volumetric (L×W×H cm / 4000, or 1 CBM = 250 kg).',
       'Sea LCL charged on higher of CBM or volumetric weight; FCL per container.',

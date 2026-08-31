@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chargeableWeight, pickRateBreak, computeQuote, round2, convert } from '../src/rate-engine.mjs';
-import { aramexContract } from '../src/seed-aramex.mjs';
+import { defaultTariff } from '../src/seed-tariff.mjs';
 
 const DATA = {
-  contract: aramexContract.contract,
-  lanes: aramexContract.lanes,
-  accessorials: aramexContract.accessorials,
+  contract: defaultTariff.contract,
+  lanes: defaultTariff.lanes,
+  accessorials: defaultTariff.accessorials,
 };
 
 test('chargeableWeight — air uses higher of gross vs volumetric (/6000)', () => {
@@ -139,4 +139,12 @@ test('Currency conversion — USD accessorial shown in AED quote', () => {
 test('convert() round-trips via AED', () => {
   assert.equal(convert(100, 'USD', 'USD', {}), 100);
   assert.equal(convert(1, 'USD', 'AED', { USD: 3.6725 }), 3.67);
+});
+
+test('white-label — sample tariff carries no source-contract provenance', () => {
+  const blob = JSON.stringify(defaultTariff);
+  assert.doesNotMatch(blob, /aramex/i);
+  assert.doesNotMatch(blob, /modern\s*line/i);
+  assert.equal(defaultTariff.contract.customer, null);
+  assert.equal(defaultTariff.carrier.email, null);
 });

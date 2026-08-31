@@ -31,7 +31,7 @@ const LOAD_TYPES = {
 async function boot() {
   const contracts = await api('/api/contracts');
   const sel = $('contractId');
-  sel.innerHTML = contracts.map(c => `<option value="${c.id}">${esc(c.carrier)} — ${esc(c.name)}</option>`).join('');
+  sel.innerHTML = contracts.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
   await loadContract(contracts[0]?.id);
   addPieceRow();
   wire();
@@ -40,7 +40,9 @@ async function boot() {
 async function loadContract(id) {
   if (!id) return;
   state.contract = await api('/api/contracts/' + id);
-  $('contractLabel').textContent = `${state.contract.carrier} · ${state.contract.customer || ''}`.trim();
+  const d = state.contract.data?.contract || {};
+  $('contractLabel').textContent =
+    [state.contract.name, d.currency, d.territory].filter(Boolean).join(' · ');
   $('ratesContractName').textContent = '— ' + state.contract.name;
   syncLoadTypes();
 }
@@ -100,7 +102,7 @@ function addPieceRow(p = {}) {
     <td><input type="number" min="0" step="0.01" class="p-kg" value="${p.weightKg ?? ''}"></td>
     <td><input type="number" min="1" step="1" class="p-q" value="${p.quantity ?? 1}"></td>
     <td><button type="button" class="rm" title="remove">×</button></td>`;
-  tr.querySelector('.rm').addEventListener('click', () => tr.remove());
+  tr.querySelector('.rm').addEventListener('click', () => { tr.remove(); schedulePrice(); });
   $('piecesBody').appendChild(tr);
 }
 
@@ -178,26 +180,53 @@ function renderResult(r) {
   $('saveBtn').disabled = false;
 }
 
+// ---------- live pricing ----------
+let priceTimer = null;
+let priceSeq = 0;
+
+async function priceNow() {
+  const seq = ++priceSeq;
+  try {
+    state.lastRequest = buildRequest();
+    const r = await api('/api/quote', {
+      method: 'POST',
+      body: JSON.stringify({ contractId: +$('contractId').value, request: state.lastRequest }),
+    });
+    if (seq !== priceSeq) return;           // a newer request already superseded this one
+    renderResult(r);
+    $('liveDot').hidden = false;
+    $('priceMsg').textContent = '';
+  } catch (err) {
+    if (seq === priceSeq) $('priceMsg').textContent = 'Not priced: ' + err.message;
+  }
+}
+
+function schedulePrice() {
+  clearTimeout(priceTimer);
+  priceTimer = setTimeout(priceNow, 300);
+}
+
 // ---------- wiring ----------
 function wire() {
   $('contractId').addEventListener('change', e => loadContract(+e.target.value));
   $('mode').addEventListener('change', syncLoadTypes);
   $('loadType').addEventListener('change', syncDestinations);
   $('destination').addEventListener('change', syncLaneUi);
-  $('addPiece').addEventListener('click', () => addPieceRow());
+  $('addPiece').addEventListener('click', () => { addPieceRow(); schedulePrice(); });
   document.querySelectorAll('input[name=cargoMode]').forEach(r => r.addEventListener('change', e => {
     const pieces = e.target.value === 'pieces';
     $('piecesBox').hidden = !pieces;
     $('summaryBox').hidden = pieces;
   }));
 
-  $('quoteForm').addEventListener('submit', async e => {
+  // re-price on any change to the shipment form
+  $('quoteForm').addEventListener('input', schedulePrice);
+  $('quoteForm').addEventListener('change', schedulePrice);
+
+  $('quoteForm').addEventListener('submit', e => {
     e.preventDefault();
-    try {
-      state.lastRequest = buildRequest();
-      const r = await api('/api/quote', { method: 'POST', body: JSON.stringify({ contractId: +$('contractId').value, request: state.lastRequest }) });
-      renderResult(r);
-    } catch (err) { alert('Pricing failed: ' + err.message); }
+    clearTimeout(priceTimer);
+    priceNow();
   });
 
   $('saveBtn').addEventListener('click', async () => {
@@ -221,8 +250,11 @@ function wire() {
       await loadContract(state.contract.id);
       $('rateSaveMsg').textContent = 'Saved. Pricing updated.';
       renderRates();
+      schedulePrice();
     } catch (err) { $('rateSaveMsg').textContent = 'Error: ' + err.message; }
   });
+
+  schedulePrice();   // show a live example on load
 }
 
 // ---------- saved quotes ----------

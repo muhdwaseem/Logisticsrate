@@ -14,7 +14,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { aramexContract } from './seed-aramex.mjs';
+import { defaultTariff } from './seed-tariff.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.FREIGHT_DB || join(__dirname, '..', '..', 'data', 'freight.db');
@@ -63,10 +63,12 @@ CREATE TABLE IF NOT EXISTS quotes (
 `);
 
 // ---- seed ------------------------------------------------------------------
+// A database from an earlier build keeps whatever it was first seeded with;
+// run `npm run reset-db` once to re-seed from the current sample tariff.
 function seedIfEmpty() {
   const { count } = db.prepare('SELECT COUNT(*) AS count FROM carriers').get();
   if (count > 0) return;
-  const c = aramexContract;
+  const c = defaultTariff;
   const carrierId = db.prepare(
     'INSERT INTO carriers (name, country, contact, email) VALUES (?, ?, ?, ?)'
   ).run(c.carrier.name, c.carrier.country, c.carrier.contact, c.carrier.email).lastInsertRowid;
@@ -77,7 +79,7 @@ function seedIfEmpty() {
     carrierId, c.contract.name, c.contract.customer, c.contract.currency,
     JSON.stringify({ contract: c.contract, lanes: c.lanes, accessorials: c.accessorials })
   );
-  console.log('[db] seeded Aramex reference contract');
+  console.log('[db] seeded sample tariff');
 }
 seedIfEmpty();
 

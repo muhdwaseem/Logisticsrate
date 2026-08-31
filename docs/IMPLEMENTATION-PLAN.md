@@ -8,7 +8,7 @@ domain logic in `rate-engine.mjs`.
 
 ## Phase 0 — Domain starter  ✅ DONE (this repo)
 
-- [x] Transcribe the signed Aramex contract into a structured rate card (`seed-aramex.mjs`).
+- [x] Model a worked sample tariff as a structured rate card (`seed-tariff.mjs`).
 - [x] Pure rate engine: chargeable weight (air/land/sea), LTL weight-break lookup,
       FTL flat lookup, quote-based lanes, rule-driven accessorials, markup, FX, VAT.
 - [x] 14 unit tests (`node --test`), all green.
@@ -32,7 +32,7 @@ Adopt the stack from `STACK-RESEARCH.md`.
 - **DB:** PostgreSQL + Prisma. Tables: `carriers`, `contracts`,
   `rate_sheets(valid_from, valid_to)`, `lanes`, `rate_breaks`, `accessorials`,
   `fx_rates`, `quotes`, `quote_lines`, `orgs`, `users`. Money = `numeric(14,4)`.
-- **Migrate the seed:** a one-off script loads `seed-aramex.mjs` into Postgres.
+- **Migrate the seed:** a one-off script loads `seed-tariff.mjs` into Postgres.
 - **Rate versioning:** never mutate a rate row; supersede with a new
   `valid_from`. Quotes store the full computed result JSON (immutable once sent).
 - **Auth & tenancy:** Auth.js/Clerk; `org` scoping on every query; roles
@@ -51,7 +51,7 @@ The bottleneck for an SME is *getting rates in and keeping them current*.
 - **Spreadsheet import:** upload an Excel/CSV rate sheet → column-mapping wizard →
   preview diff vs current → publish with `valid_from`. (BullMQ job.)
 - **PDF contract assist:** OCR + LLM extraction to pre-fill a rate sheet from a
-  contract PDF (like the Aramex one), human-reviewed before publish.
+  carrier contract PDF, human-reviewed before publish.
 - **Rate editor UI:** proper grid editing for lanes/breaks/accessorials
   (replaces the raw JSON textarea), validation, bulk % adjustments, expiry alerts.
 - **Surcharge rule builder:** condition → charge, without code (origin zone, DG,

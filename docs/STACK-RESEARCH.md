@@ -45,8 +45,7 @@ From current (2025–2026) freight-tech landscape research:
   applied on top of base rates, a **markup/margin layer**, then a **quote
   document** with an expiry date. Modern tools add carrier-API rate feeds and
   email-to-quote automation; early adopters report **~75% faster quote turnaround**.
-- **Pricing structure the engine must model** (industry-standard, and matches the
-  Aramex contract):
+- **Pricing structure the engine must model** (industry-standard):
   - **FCL / FTL** — flat rate per container / per truck by equipment type.
   - **LCL** — chargeable **W/M**: higher of volume (CBM) or weight (revenue ton).
   - **Air** — chargeable weight: higher of gross or volumetric (÷6000).
