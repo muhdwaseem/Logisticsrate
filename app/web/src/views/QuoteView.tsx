@@ -96,8 +96,8 @@ const initialForm: FormState = {
   cargoMode: 'pieces',
   grossWeightKg: '',
   volumeCbm: '',
-  markupType: '',
-  markupValue: '',
+  markupType: 'percent',
+  markupValue: '15',
   quoteCurrency: 'AED',
   applyVat: true,
   dangerousGoods: false,
@@ -356,6 +356,10 @@ export function QuoteView({
         ? { text: 'lane matched', kind: 'oklike' }
         : { text: 'lane not matched', kind: 'warnlike' },
     );
+    if (result.meta?.transitDays != null)
+      chips.push({
+        text: `Transit ~${result.meta.transitDays} day${result.meta.transitDays === 1 ? '' : 's'}`,
+      });
   }
 
   return (
@@ -687,6 +691,7 @@ export function QuoteView({
                 >
                   <option value="">—</option>
                   <option>Sharjah</option>
+                  <option>Sharjah - Hamriya</option>
                   <option>Ajman</option>
                   <option>UAQ</option>
                   <option>RAK</option>

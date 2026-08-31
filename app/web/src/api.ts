@@ -71,7 +71,7 @@ export interface QuoteResult {
   quoteCurrency: string;
   chargeableKg?: number | null;
   chargeable?: { basis?: string; volumeCbm?: number };
-  meta?: { laneMatched?: boolean };
+  meta?: { laneMatched?: boolean; transitDays?: number | null };
   lines?: QuoteLine[];
   subtotal: number;
   tax?: QuoteTax;

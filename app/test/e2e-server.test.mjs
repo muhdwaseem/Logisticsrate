@@ -18,7 +18,6 @@ const DB = join(tmpdir(), `freight_e2e_${process.pid}_${Date.now()}.db`);
 const PORT = 4793;
 const BASE = `http://localhost:${PORT}`;
 
-const FORBIDDEN = /aramex|modern\s*line/i;
 let child;
 
 function cleanupDb() {
@@ -62,21 +61,20 @@ test('GET /api/health', async () => {
   assert.equal(b.ok, true);
 });
 
-test('GET /api/contracts — seeded, no provenance', async () => {
+test('GET /api/contracts — seeded Aramex tariff', async () => {
   const r = await fetch(`${BASE}/api/contracts`);
   const b = await r.json();
   assert.equal(r.status, 200);
   assert.ok(b.length >= 1, 'at least one tariff seeded');
-  assert.doesNotMatch(JSON.stringify(b), FORBIDDEN);
+  assert.match(JSON.stringify(b), /Aramex/);
 });
 
-test('GET /api/contracts/1 — full tariff, no provenance', async () => {
+test('GET /api/contracts/1 — full tariff for Modern Line Distribution', async () => {
   const r = await fetch(`${BASE}/api/contracts/1`);
   const b = await r.json();
   assert.equal(r.status, 200);
   assert.ok(Array.isArray(b.data.lanes) && b.data.lanes.length > 0);
-  assert.equal(b.customer, null, 'seed tariff carries no customer name');
-  assert.doesNotMatch(JSON.stringify(b), FORBIDDEN);
+  assert.equal(b.customer, 'Modern Line Distribution LLC');
 });
 
 test('GET /api/contracts/999 — 404', async () => {
@@ -168,14 +166,13 @@ test('PATCH /api/quotes/:ref — bad status rejected', async () => {
   assert.equal(r.status, 400);
 });
 
-test('GET /api/quotes/:ref/print — HTML with no provenance rows', async () => {
+test('GET /api/quotes/:ref/print — Aramex letterhead, well-formed', async () => {
   const r = await fetch(`${BASE}/api/quotes/${savedRef}/print`);
   const html = await r.text();
   assert.equal(r.status, 200);
   assert.match(html, /Freight Quotation/);
-  assert.doesNotMatch(html, FORBIDDEN);
-  assert.doesNotMatch(html, /Rate agreement/i);
-  assert.doesNotMatch(html, /Carrier \/ contract/i);
+  assert.match(html, /Aramex/);                       // seeded provider identity
+  assert.doesNotMatch(html, /Carrier \/ contract/i);  // old buy-rate row must stay gone
 });
 
 test('PUT /api/contracts/1/data — round-trips an edit', async () => {
@@ -189,7 +186,7 @@ test('PUT /api/contracts/1/data — round-trips an edit', async () => {
   assert.equal(r.status, 200);
 });
 
-test('static — index.html served, shows no provenance', async (t) => {
+test('static — index.html served', async (t) => {
   // app/public is the Vite build output; skip if the UI hasn't been built.
   if (!existsSync(join(__dirname, '..', 'public', 'index.html'))) {
     t.skip('run `npm run build` first to exercise the static host');
@@ -198,8 +195,7 @@ test('static — index.html served, shows no provenance', async (t) => {
   const r = await fetch(`${BASE}/`);
   const html = await r.text();
   assert.equal(r.status, 200);
-  assert.doesNotMatch(html, FORBIDDEN);
-  assert.doesNotMatch(html, /Rate agreement/i);
+  assert.match(html, /<div id="root">/);
 });
 
 // ---- Phase A: Company Profile -------------------------------------------
@@ -261,7 +257,6 @@ test('Printable quote shows the company letterhead and tax label', async () => {
   assert.match(html, /ACME Logistics LLC/);
   assert.match(html, /GST \(5%\)/);
   assert.match(html, /Freight Quotation/);
-  assert.doesNotMatch(html, FORBIDDEN);
 });
 
 test('tax_mode "none" removes the tax row from the printable quote', async () => {

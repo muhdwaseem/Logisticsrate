@@ -54,12 +54,6 @@ export function App() {
     if (contractId != null) loadContract(contractId);
   }, [contractId, loadContract]);
 
-  const d = contract?.data?.contract ?? {};
-  const label = contract
-    ? [contract.name, d.currency, d.territory as string | undefined]
-        .filter(Boolean)
-        .join('  ·  ')
-    : 'loading…';
   const brandName = company?.display_name || 'Freight Rate & Quotation';
 
   return (
@@ -93,7 +87,6 @@ export function App() {
           </span>
           <div className="brand-text">
             <strong>{brandName}</strong>
-            <small>{label}</small>
           </div>
         </div>
         <nav className="tabs" aria-label="Sections">
@@ -103,12 +96,7 @@ export function App() {
           <NavLink className="tab" to="/saved">
             Saved quotes
           </NavLink>
-          <NavLink className="tab" to="/tariffs">
-            Tariffs
-          </NavLink>
-          <NavLink className="tab" to="/settings">
-            Settings
-          </NavLink>
+          {/* Tariffs + Settings are hidden for now — routes still work by URL */}
         </nav>
       </header>
 
