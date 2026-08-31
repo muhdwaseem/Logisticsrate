@@ -50,11 +50,11 @@ test('LTL Riyadh 1500 kg — base 2100 + 10% FSC + BOE 175 + 5% VAT', () => {
 
   const base = q.lines.find(l => l.code === 'BASE');
   const fsc = q.lines.find(l => l.code === 'FSC');
-  const boe = q.lines.find(l => l.code === 'BOE_JEBELALI_NONDUTY');
+  const boe = q.lines.find(l => l.code === 'BOE_NONDUTY');
 
   assert.equal(base.amount, 2100);        // 1500 kg x 1.40/kg (1001-2000 band)
   assert.equal(fsc.amount, 210);          // 10% of base
-  assert.equal(boe.amount, 175);          // non-duty-paid ex Jebel Ali
+  assert.equal(boe.amount, 175);          // non-duty-paid documentation
   assert.equal(q.subtotal, 2485);         // 2100 + 210 + 175
   assert.equal(q.vat, round2(2485 * 0.05));
   assert.equal(q.total, round2(2485 * 1.05));
@@ -220,6 +220,29 @@ test('Cross-border LTL prices from any UAE origin', () => {
   }
 });
 
+test('BOE documentation applies to any non-duty-paid cross-border origin', () => {
+  const dxb = computeQuote({
+    mode: 'land', loadType: 'LTL', origin: 'Dubai', destination: 'KSA - Riyadh',
+    grossWeightKg: 1500, options: { applyVat: false },
+  }, DATA);
+  assert.equal(dxb.lines.find(l => l.code === 'BOE_NONDUTY').amount, 175);
+
+  // SAIF / DAFZA keep their own higher fee, not the standard 175
+  const saif = computeQuote({
+    mode: 'land', loadType: 'LTL', origin: 'Sharjah - SAIF Zone', destination: 'Bahrain',
+    grossWeightKg: 600, options: { applyVat: false },
+  }, DATA);
+  assert.equal(saif.lines.some(l => l.code === 'BOE_NONDUTY'), false);
+  assert.equal(saif.lines.find(l => l.code === 'BOE_SAIF').amount, 300);
+
+  // a local trip never carries an export BOE
+  const local = computeQuote({
+    mode: 'land', loadType: 'LOCAL', origin: 'Jebel Ali', destination: 'Ajman',
+    equipment: '3T', containers: 1, options: { applyVat: false },
+  }, DATA);
+  assert.equal(local.lines.some(l => /^BOE/.test(l.code || '')), false);
+});
+
 test('quote lines carry an auto / optional source tag', () => {
   const q = computeQuote({
     mode: 'land', loadType: 'LOCAL', origin: 'Jebel Ali', destination: 'Ajman',
@@ -246,11 +269,10 @@ test('convert() round-trips via AED', () => {
   assert.equal(convert(1, 'USD', 'AED', { USD: 3.6725 }), 3.67);
 });
 
-test('seed tariff — combined UAE land transport (Aramex cross-border + local)', () => {
-  assert.equal(defaultTariff.carrier.name, 'Aramex Emirates LLC');
-  assert.equal(defaultTariff.contract.customer, 'Modern Line Distribution LLC');
+test('seed tariff — combined UAE land transport (cross-border + local)', () => {
   const types = new Set(defaultTariff.lanes.map(l => l.loadType));
   assert.ok(types.has('LTL') && types.has('FTL') && types.has('LOCAL'));
+  assert.equal(defaultTariff.contract.currency, 'AED');
 });
 
 // ---- Phase A: Company Profile & configurable tax --------------------------

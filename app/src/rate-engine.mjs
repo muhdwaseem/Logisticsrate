@@ -120,7 +120,10 @@ const PREDICATES = {
   if_origin_saif: (r) => xborder(r) && /saif/i.test(r.origin || ''),
   if_origin_dafza: (r) => xborder(r) && /dafza/i.test(r.origin || ''),
   if_origin_dutypaid: (r) => xborder(r) && !!r.options?.originDutyPaid,
-  if_origin_jebelali_nonduty: (r) => xborder(r) && /jebel\s*ali/i.test(r.origin || '') && !r.options?.originDutyPaid,
+  // standard export documentation for any non-duty-paid cross-border shipment
+  // whose origin isn't SAIF Zone / DAFZA (those have their own higher fee).
+  if_xborder_nonduty: (r) => xborder(r) && !r.options?.originDutyPaid
+    && !/saif/i.test(r.origin || '') && !/dafza/i.test(r.origin || ''),
   if_sea_docs_not_received: (r) => r.mode === 'sea' && r.options?.originalDocsReceived === false,
   manual: (r, acc) => Array.isArray(r.selectedAccessorials) && r.selectedAccessorials.includes(acc.code),
 };

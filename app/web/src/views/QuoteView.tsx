@@ -131,17 +131,13 @@ export function QuoteView({ contractId, contract, company }: Props) {
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  type BoolKey =
-    | 'applyVat'
-    | 'dangerousGoods'
-    | 'originDutyPaid'
-    | 'originalDocsReceived'
-    | 'insure';
+  type BoolKey = 'applyVat' | 'dangerousGoods' | 'originDutyPaid' | 'insure';
+  const isLocal = form.loadType === 'LOCAL';
   const boolChecks: [BoolKey, string][] = [
     ['applyVat', `Apply ${company?.tax_label || 'VAT'}`],
     ['dangerousGoods', 'Dangerous goods'],
-    ['originDutyPaid', 'Duty-paid origin'],
-    ['originalDocsReceived', 'Original docs received (sea)'],
+    // duty-paid origin only affects cross-border documentation
+    ...(!isLocal ? [['originDutyPaid', 'Duty-paid origin'] as [BoolKey, string]] : []),
     ['insure', 'Insure cargo'],
   ];
 
@@ -376,19 +372,7 @@ export function QuoteView({ contractId, contract, company }: Props) {
               <h3>Route &amp; service</h3>
             </div>
 
-            <div className={isFlat ? 'row3' : 'row2'}>
-              <label className="field">
-                Mode
-                <select
-                  value={form.mode}
-                  onChange={(e) => set('mode', e.target.value)}
-                >
-                  <option value="land">Land</option>
-                  <option value="air">Air</option>
-                  <option value="sea">Sea</option>
-                  <option value="customs">Customs</option>
-                </select>
-              </label>
+            <div className={isFlat ? 'row2' : ''}>
               <label className="field">
                 Load type
                 <select
