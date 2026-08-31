@@ -211,7 +211,9 @@ export function computeQuote(request, contractData, company = null) {
       baseBuy = round2(flat * containers);
       baseDetail = `${containers} × ${flat} (${key})`;
     }
-    baseLabel = `${request.loadType || 'FTL'} ${request.destination}`;
+    baseLabel = request.loadType === 'LOCAL'
+      ? `Local haulage ${[request.origin, request.destination].filter(Boolean).join(' → ')}`
+      : `${request.loadType || 'FTL'} ${request.destination}`;
   } else {
     // Quote-based lane (air / sea / customs): forwarder keys the carrier buy rate
     baseBuy = Number(request.buyRate) || 0;

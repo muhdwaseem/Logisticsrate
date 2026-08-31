@@ -1,12 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chargeableWeight, pickRateBreak, computeQuote, round2, convert } from '../src/rate-engine.mjs';
-import { defaultTariff } from '../src/seed-tariff.mjs';
+import { defaultTariff, whiteEagleTariff } from '../src/seed-tariff.mjs';
 
 const DATA = {
   contract: defaultTariff.contract,
   lanes: defaultTariff.lanes,
   accessorials: defaultTariff.accessorials,
+};
+
+const WE = {
+  contract: whiteEagleTariff.contract,
+  lanes: whiteEagleTariff.lanes,
+  accessorials: whiteEagleTariff.accessorials,
 };
 
 test('chargeableWeight — air uses higher of gross vs volumetric (/6000)', () => {
@@ -163,6 +169,46 @@ test('Transit days from the service schedule are exposed on the result', () => {
     grossWeightKg: 500, options: { applyVat: false },
   }, DATA);
   assert.equal(q.meta.transitDays, 6);
+});
+
+test('White Eagle local — per-trip flat rate by truck size', () => {
+  const q3 = computeQuote({
+    mode: 'land', loadType: 'LOCAL', origin: 'Jebel Ali', destination: 'Dubai',
+    equipment: '3T', containers: 1, options: { applyVat: true },
+  }, WE);
+  const base = q3.lines.find(l => l.code === 'BASE');
+  assert.equal(base.amount, 275);                     // JA -> Dubai, 3 Ton
+  assert.match(base.label, /Local haulage Jebel Ali → Dubai/);
+  assert.equal(q3.total, round2(275 * 1.05));
+
+  const q7x2 = computeQuote({
+    mode: 'land', loadType: 'LOCAL', origin: 'DWC', destination: 'Dubai',
+    equipment: '7-10T', containers: 2, options: { applyVat: false },
+  }, WE);
+  assert.equal(q7x2.lines.find(l => l.code === 'BASE').amount, 1100); // 550 x 2 trucks
+});
+
+test('White Eagle local — origin selects the right lane for a shared destination', () => {
+  const fromJA = computeQuote({
+    mode: 'land', loadType: 'LOCAL', origin: 'Jebel Ali', destination: 'Sharjah',
+    equipment: '3T', containers: 1, options: { applyVat: false },
+  }, WE);
+  const fromDWC = computeQuote({
+    mode: 'land', loadType: 'LOCAL', origin: 'DWC', destination: 'Sharjah',
+    equipment: '3T', containers: 1, options: { applyVat: false },
+  }, WE);
+  assert.equal(fromJA.lines.find(l => l.code === 'BASE').amount, 350);
+  assert.equal(fromDWC.lines.find(l => l.code === 'BASE').amount, 400);
+});
+
+test('White Eagle local — manual add-on charge (customs seal) applies when picked', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'LOCAL', origin: 'Jebel Ali', destination: 'Ajman',
+    equipment: '7-10T', containers: 1, selectedAccessorials: ['WE_CUSTOMS_SEAL'],
+    options: { applyVat: false },
+  }, WE);
+  assert.equal(q.lines.find(l => l.code === 'WE_CUSTOMS_SEAL').amount, 100);
+  assert.equal(q.subtotal, 850); // 750 base + 100 seal
 });
 
 test('Currency conversion — USD accessorial shown in AED quote', () => {

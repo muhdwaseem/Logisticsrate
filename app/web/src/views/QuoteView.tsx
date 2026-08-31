@@ -23,6 +23,7 @@ const LOAD_TYPES: Record<string, [string, string][]> = {
   land: [
     ['LTL', 'LTL — less than truck load'],
     ['FTL', 'FTL — full truck load'],
+    ['LOCAL', 'Local — intra-UAE, per trip'],
   ],
   air: [['GENERAL', 'General cargo']],
   sea: [
@@ -35,6 +36,7 @@ const LOAD_TYPES: Record<string, [string, string][]> = {
 const ORIGIN_SUGGESTIONS = [
   'Jebel Ali',
   'Dubai',
+  'DWC',
   'Sharjah - SAIF Zone',
   'Sharjah - Hamriya',
   'DAFZA',
@@ -171,7 +173,12 @@ export function QuoteView({
     if (!matched.length) {
       return [{ value: '', label: '(no lane — quote-based)' }];
     }
-    return matched.map((l) => ({ value: l.destination, label: l.destination }));
+    // one entry per destination; when several lanes share it (different origins)
+    // the Origin field disambiguates in the engine.
+    const seen = new Set<string>();
+    return matched
+      .filter((l) => !seen.has(l.destination) && seen.add(l.destination))
+      .map((l) => ({ value: l.destination, label: l.destination }));
   }, [lanes, form.mode, form.loadType]);
 
   const currentLane = useMemo(
