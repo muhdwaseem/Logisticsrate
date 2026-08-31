@@ -204,14 +204,40 @@ carriers, currently API-only per `README`).
 | **Pickup truck** | options from distinct `truckType` on the tariff's collection accessorials, not the fixed 3T/10T/40FT |
 | result "chargeable" chips, breakdown, ledger | ledger "VAT (5%)" → `${tax.label} (${tax.pct}%)`, row hidden when `tax_mode==="none"` |
 
-### 5.5 Printable quotation (`quote-doc.mjs`)
+### 5.5 Printable / PDF quotation (`quote-doc.mjs`) — first-class deliverable
 
-- Header becomes a real letterhead: `company.logo`, `legal_name`, `address`,
-  `city, country`, `tax_id`, contact line (`email · phone · website`).
-- Tax row label from `result.tax.label`; hidden when `none`.
-- New optional blocks: `bank_details`, and `quote_footer_notes` appended to the
-  existing notes list.
-- Ref already comes from the DB; it will inherit the new prefix automatically.
+This is what the client actually sends their customer (browser → Print → Save as
+PDF), so it must be **fully company-branded**, not just the on-screen panel. It
+already exists and was restyled; generalization turns its fixed header into a
+real letterhead driven entirely by the Company Profile — no code edit per client.
+
+Top-to-bottom layout after generalization:
+
+| Band | Content | Source |
+|---|---|---|
+| **Letterhead** | company logo (left) · legal name, address, `city, country`, `Tax ID: …`, `email · phone · website` (right) | `company.logo/legal_name/address/city/country/tax_id/email/phone/website` |
+| **Document title** | "Freight Quotation" · ref `ACME-2026-0007` · issued date · valid-until date · status | ref from DB (`quote_prefix`/`quote_pad`), `default_validity_days` |
+| **Parties** | Quote **from** (company short block) · **to** (customer/account name) | `company`, `quote.customer` |
+| **Shipment** | mode · load type · origin → destination · incoterm · chargeable qty & basis | request / engine result |
+| **Charge table** | line items: label, detail, qty×unit, original-currency amount, quote-currency amount | `result.lines[]` (already currency-converted) |
+| **Ledger** | Subtotal · `{tax.label} ({tax.pct}%)` — **row hidden when `tax_mode:"none"`** · **Total** in quote currency | `result.tax`, `result.total` |
+| **Notes & exclusions** | tariff notes + `company.quote_footer_notes` appended | `result.meta.notes` + `company` |
+| **Payment** *(optional band)* | `bank_details` block; shown only when set | `company.bank_details` |
+| **Fine print** | standing VATOS / duties-excluded paragraph (already present) | static |
+
+Behaviour rules:
+- No logo set → fall back to the current SVG glyph; no `bank_details` → omit the
+  band; `tax_mode:"none"` → omit the tax row **and** show the relevant footer
+  note (e.g. EU reverse-charge line from the tariff seed).
+- Amounts use `result.tax.label` / `result.tax.pct` / `result.total`, never a
+  literal "VAT" or "AED".
+- Same route (`GET /api/quotes/:ref/print`), same "Print / Save as PDF" button;
+  print CSS unchanged.
+- White-label + currency/word guard tests (§8) run against this HTML exactly as
+  they do against `index.html`.
+
+Covered by the **Phase A** line item *"Quote letterhead: logo, from-block,
+tax_id, bank details, footer notes"* (size **M**) plus the tax-label item.
 
 ### 5.6 Saved-quotes screen
 
