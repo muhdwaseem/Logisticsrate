@@ -64,6 +64,7 @@ export function SettingsView({
   const [form, setForm] = useState<Form | null>(null);
   const [fxRows, setFxRows] = useState<FxRow[]>([]);
   const [saving, setSaving] = useState(false);
+  const [logoName, setLogoName] = useState('');
 
   useEffect(() => {
     if (!company) return;
@@ -102,6 +103,7 @@ export function SettingsView({
         return;
       }
       set('logo', uri);
+      setLogoName(file.name);
     };
     reader.readAsDataURL(file);
   };
@@ -152,7 +154,7 @@ export function SettingsView({
   };
 
   return (
-    <section className="view active">
+    <section className="view active settings">
       <form className="card form" onSubmit={onSubmit}>
         <div className="card-head">
           <h2>Company settings</h2>
@@ -184,24 +186,37 @@ export function SettingsView({
               />
             </label>
           </div>
-          <label className="field">
-            Logo (PNG or SVG, under 64 KB)
-            <input
-              type="file"
-              accept="image/png,image/svg+xml,image/jpeg"
-              onChange={(e) => onLogo(e.target.files?.[0])}
-            />
-          </label>
-          {form.logo && <img className="logo-preview" src={form.logo} alt="logo preview" />}
-          {form.logo && (
-            <button
-              type="button"
-              className="link"
-              onClick={() => set('logo', '')}
-            >
-              remove logo
-            </button>
-          )}
+          <div className="field">
+            Logo <span className="muted">— PNG or SVG, shown on the app header and every quote</span>
+            <div>
+              <label className="filebtn">
+                <input
+                  type="file"
+                  accept="image/png,image/svg+xml,image/jpeg"
+                  onChange={(e) => onLogo(e.target.files?.[0])}
+                />
+                <span className="fb-btn">Choose image</span>
+                <span className="fb-name">
+                  {logoName || (form.logo ? 'current logo' : 'No file chosen')}
+                </span>
+              </label>
+            </div>
+            {form.logo && (
+              <>
+                <img className="logo-preview" src={form.logo} alt="logo preview" />
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => {
+                    set('logo', '');
+                    setLogoName('');
+                  }}
+                >
+                  remove logo
+                </button>
+              </>
+            )}
+          </div>
           <label className="field">
             Address
             <textarea
@@ -296,7 +311,7 @@ export function SettingsView({
               />
             </label>
           </div>
-          <label className="field" style={{ maxWidth: 200 }}>
+          <label className="field narrow">
             Tax rate %
             <input
               type="number"
@@ -308,9 +323,13 @@ export function SettingsView({
             />
           </label>
 
-          <div className="fg-head" style={{ marginTop: 8 }}>
-            <h3>FX rates (units per 1 {form.base_currency || 'base'})</h3>
+          <div className="fg-head" style={{ marginTop: 10 }}>
+            <h3>FX rates</h3>
           </div>
+          <p className="fg-sub">
+            Units of each currency per 1 {form.base_currency || 'base'}. Used for
+            multi-currency quote lines.
+          </p>
           <div className="kv-editor">
             {fxRows.map((row, i) => (
               <div className="kv-row" key={i}>
@@ -395,7 +414,7 @@ export function SettingsView({
               />
             </label>
           </div>
-          <label className="field" style={{ maxWidth: 200 }}>
+          <label className="field narrow">
             Default validity (days)
             <input
               type="number"

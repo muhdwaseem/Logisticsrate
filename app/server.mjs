@@ -7,6 +7,7 @@
  */
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { computeQuote } from './src/rate-engine.mjs';
@@ -183,4 +184,10 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`\n  Freight Rate & Quotation System`);
   console.log(`  → http://localhost:${PORT}\n`);
+  if (!existsSync(join(PUBLIC, 'index.html'))) {
+    console.warn(
+      '  ⚠  app/public/index.html is missing — the UI will 404.\n' +
+      '     Build it once:  npm run build   (from the app/ directory)\n',
+    );
+  }
 });
