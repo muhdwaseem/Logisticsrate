@@ -315,6 +315,13 @@ table.pieces input { margin: 0; padding: 7px 7px; }
   padding: 3px 9px; border-radius: 999px;
 }
 .chip.warnlike { color: var(--warn-ink); background: var(--warn-bg); border-color: var(--warn-line); }
+
+.tag-opt {
+  display: inline-block; margin-left: 8px; padding: 1px 6px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--muted); background: var(--panel-2);
+  border: 1px solid var(--line); border-radius: 5px; vertical-align: middle;
+}
 .chip.oklike { color: var(--ok); background: var(--ok-soft); border-color: color-mix(in srgb, var(--ok) 30%, transparent); }
 
 table.breakdown, table.grid { width: 100%; border-collapse: collapse; }

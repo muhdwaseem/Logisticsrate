@@ -376,7 +376,7 @@ export function QuoteView({ contractId, contract, company }: Props) {
               <h3>Route &amp; service</h3>
             </div>
 
-            <div className="row3">
+            <div className={isFlat ? 'row3' : 'row2'}>
               <label className="field">
                 Mode
                 <select
@@ -402,15 +402,18 @@ export function QuoteView({ contractId, contract, company }: Props) {
                   ))}
                 </select>
               </label>
-              <label className="field">
-                Containers / trucks
-                <input
-                  type="number"
-                  min="1"
-                  value={form.containers}
-                  onChange={(e) => set('containers', e.target.value)}
-                />
-              </label>
+              {/* only per-truck lanes (FTL / LOCAL) need a count */}
+              {isFlat && (
+                <label className="field">
+                  Trucks
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.containers}
+                    onChange={(e) => set('containers', e.target.value)}
+                  />
+                </label>
+              )}
             </div>
 
             <div className="row2">
@@ -606,39 +609,18 @@ export function QuoteView({ contractId, contract, company }: Props) {
               <h3>Pricing &amp; options</h3>
             </div>
 
-            <div className="row3">
-              <label className="field">
-                Markup
-                <select
-                  value={form.markupType}
-                  onChange={(e) => set('markupType', e.target.value)}
-                >
-                  <option value="">none</option>
-                  <option value="percent">%</option>
-                  <option value="flat">flat</option>
-                </select>
-              </label>
-              <label className="field">
-                Markup value
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.markupValue}
-                  onChange={(e) => set('markupValue', e.target.value)}
-                />
-              </label>
-              <label className="field">
-                Quote currency
-                <select
-                  value={form.quoteCurrency}
-                  onChange={(e) => set('quoteCurrency', e.target.value)}
-                >
-                  <option>AED</option>
-                  <option>USD</option>
-                </select>
-              </label>
-            </div>
+            {/* Markup is fixed at 15% for now — applied silently, shown in the
+                quote breakdown as "incl. markup 15%". */}
+            <label className="field narrow">
+              Quote currency
+              <select
+                value={form.quoteCurrency}
+                onChange={(e) => set('quoteCurrency', e.target.value)}
+              >
+                <option>AED</option>
+                <option>USD</option>
+              </select>
+            </label>
 
             <div className="checks">
               {boolChecks
@@ -798,7 +780,12 @@ export function QuoteView({ contractId, contract, company }: Props) {
                   <tbody>
                     {(result.lines ?? []).map((l, i) => (
                       <tr key={i}>
-                        <td>{l.label}</td>
+                        <td>
+                          {l.label}
+                          {l.source === 'optional' && (
+                            <span className="tag-opt">optional</span>
+                          )}
+                        </td>
                         <td className="ln-detail">
                           {l.detail || ''}
                           {l.currency && l.currency !== ccy

@@ -208,6 +208,28 @@ test('White Eagle local — manual add-on charge (customs seal) applies when pic
   assert.equal(q.subtotal, 850); // 750 base + 100 seal
 });
 
+test('Cross-border LTL prices from any UAE origin', () => {
+  for (const origin of ['Jebel Ali', 'Dubai', 'Sharjah - SAIF Zone', 'DAFZA']) {
+    const q = computeQuote({
+      mode: 'land', loadType: 'LTL', origin, destination: 'KSA - Riyadh',
+      grossWeightKg: 1500, options: { applyVat: false },
+    }, DATA);
+    const base = q.lines.find(l => l.code === 'BASE');
+    assert.equal(base.amount, 2100, `base freight should price for origin "${origin}"`);
+    assert.equal(q.meta.laneMatched, true);
+  }
+});
+
+test('quote lines carry an auto / optional source tag', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'LOCAL', origin: 'Jebel Ali', destination: 'Ajman',
+    equipment: '7-10T', containers: 1, selectedAccessorials: ['WE_CUSTOMS_SEAL'],
+    options: { applyVat: false, insure: true, cargoValueAed: 20000 },
+  }, DATA);
+  assert.equal(q.lines.find(l => l.code === 'WE_CUSTOMS_SEAL').source, 'optional');
+  assert.equal(q.lines.find(l => l.code === 'INSURANCE').source, 'auto');
+});
+
 test('Currency conversion — USD accessorial shown in AED quote', () => {
   const q = computeQuote({
     mode: 'sea', loadType: 'LCL', destination: 'Sea LCL - any destination',
