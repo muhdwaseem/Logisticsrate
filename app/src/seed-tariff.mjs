@@ -175,3 +175,81 @@ function collection(zone, truckType, rate) {
     emirate: zone, // back-compat: engine still reads `emirate`
   };
 }
+
+// ===========================================================================
+// White Eagle Transport By Heavy & Light Trucks L.L.C. — local UAE haulage.
+// TRN 100052344700003. Rates are per trip, flat by truck size (3 Ton or
+// 7/10 Ton), for intra-UAE point-to-point moves. Not weight-based.
+// ===========================================================================
+function local(from, to, r3t, r7t) {
+  return {
+    mode: 'land', loadType: 'LOCAL', origin: from, destination: to,
+    currency: 'AED', flatRates: { '3T': r3t, '7-10T': r7t },
+  };
+}
+
+export const whiteEagleTariff = {
+  carrier: {
+    name: 'White Eagle Transport By Heavy & Light Trucks LLC',
+    country: 'AE',
+    contact: '+971 50 454 1270',
+    email: 'akku43@gmail.com',
+  },
+  contract: {
+    name: 'White Eagle Transport — UAE Local Distribution',
+    customer: null,
+    currency: 'AED',
+    territory: 'United Arab Emirates',
+    vatPct: 5,
+    incoterm: 'Local haulage (per trip)',
+    validityDays: 90, // "valid for three months from the date of quotation"
+    fx: { AED: 1 },
+    notes: [
+      'Local intra-UAE point-to-point haulage. Rate is per trip by truck size — 3 Ton or 7/10 Ton.',
+      'AED 50 per additional collection point on route.',
+      'Free 1 hour (max) at each stuffing / destuffing site; thereafter AED 50/hr or full day AED 200 for 3 Ton, AED 100/hr or full day AED 400 for 7/10 Ton (excluding trip charges).',
+      'Split deliveries are charged, based on distance and time.',
+      'Trip / job cancellation: AED 150 (3 Ton) / AED 250 (7/10 Ton). Overnight detention: AED 250 (3 Ton) / AED 400 (7/10 Ton).',
+      'Customs-sealed shipment: +AED 100/truck. Customs inspection: +AED 50/truck. Tolls (Salik) not included.',
+      'Rates valid three months from date of quotation. Trucks subject to availability. Payment: cash against delivery.',
+    ],
+  },
+  lanes: [
+    local('Jebel Ali', 'Jebel Ali',          125, 250),
+    local('Jebel Ali', 'DWC',                 175, 325),
+    local('DWC',       'Al Quoz',             275, 450),
+    local('Jebel Ali', 'Dubai',              275, 500),
+    local('DWC',       'Dubai',              325, 550),
+    local('Jebel Ali', 'DIC',                225, 400),
+    local('Jebel Ali', 'DIP',                225, 400),
+    local('Dubai',     'DIC',                300, 600),
+    local('Jebel Ali', 'Sharjah',           350, 600),
+    local('DWC',       'Sharjah',            400, 650),
+    local('Jebel Ali', 'Sharjah SAIF Zone', 400, 700),
+    local('Jebel Ali', 'Sharjah Sajja',     450, 750),
+    local('Jebel Ali', 'Ajman',             450, 750),
+    local('Jebel Ali', 'Hamriya FZE',       550, 850),
+    local('Jebel Ali', 'RAK',               550, 800),
+    local('Jebel Ali', 'Fujairah',          650, 900),
+    local('Jebel Ali', 'Al Ain',            600, 950),
+    local('Jebel Ali', 'Abu Dhabi',         500, 850),
+    local('Jebel Ali', 'Ras Al Khor',       275, 450),
+    local('Jebel Ali', 'UAQ',               500, 800),
+    local('Jebel Ali', 'Khor Fakkan',       700, 900),
+    local('Jebel Ali', 'Khalifa Port',      500, 800),
+    local('Jebel Ali', 'Jazeera Port',      500, 850),
+  ],
+  accessorials: [
+    acc('WE_EXTRA_COLLECTION',     'Additional collection point on route',    'land', 'flat',          50,  'AED', 'manual'),
+    acc('WE_WAIT_3T_HR',           'Waiting — 3 Ton (per hr after 1h free)',  'land', 'flat',          50,  'AED', 'manual'),
+    acc('WE_WAIT_7T_HR',           'Waiting — 7/10 Ton (per hr after 1h free)','land','flat',          100, 'AED', 'manual'),
+    acc('WE_WAIT_3T_DAY',          'Waiting — 3 Ton (full day)',              'land', 'flat',          200, 'AED', 'manual'),
+    acc('WE_WAIT_7T_DAY',          'Waiting — 7/10 Ton (full day)',           'land', 'flat',          400, 'AED', 'manual'),
+    acc('WE_CANCEL_3T',            'Trip cancellation — 3 Ton',               'land', 'per_shipment',  150, 'AED', 'manual'),
+    acc('WE_CANCEL_7T',            'Trip cancellation — 7/10 Ton',            'land', 'per_shipment',  250, 'AED', 'manual'),
+    acc('WE_DETENTION_3T',         'Overnight detention — 3 Ton',             'land', 'per_shipment',  250, 'AED', 'manual'),
+    acc('WE_DETENTION_7T',         'Overnight detention — 7/10 Ton',          'land', 'per_shipment',  400, 'AED', 'manual'),
+    acc('WE_CUSTOMS_SEAL',         'Customs-sealed shipment (per truck)',     'land', 'per_container', 100, 'AED', 'manual'),
+    acc('WE_CUSTOMS_INSPECTION',   'Customs inspection (per truck)',          'land', 'per_container', 50,  'AED', 'manual'),
+  ],
+};

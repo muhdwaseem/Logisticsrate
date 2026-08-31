@@ -77,6 +77,31 @@ test('GET /api/contracts/1 — full tariff for Modern Line Distribution', async 
   assert.equal(b.customer, 'Modern Line Distribution LLC');
 });
 
+test('GET /api/contracts — both Aramex and White Eagle are seeded', async () => {
+  const b = await (await fetch(`${BASE}/api/contracts`)).json();
+  assert.ok(b.some(c => /Aramex/.test(c.carrier)));
+  assert.ok(b.some(c => /White Eagle/.test(c.carrier)));
+});
+
+test('POST /api/quote — White Eagle local trip prices per truck', async () => {
+  const we = (await (await fetch(`${BASE}/api/contracts`)).json())
+    .find(c => /White Eagle/.test(c.carrier));
+  const r = await fetch(`${BASE}/api/quote`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      contractId: we.id,
+      request: {
+        mode: 'land', loadType: 'LOCAL', origin: 'Jebel Ali', destination: 'Dubai',
+        equipment: '3T', containers: 1, options: { applyVat: true },
+      },
+    }),
+  });
+  const b = await r.json();
+  assert.equal(r.status, 200);
+  assert.equal(b.lines.find(l => l.code === 'BASE').amount, 275);
+});
+
 test('GET /api/contracts/999 — 404', async () => {
   const r = await fetch(`${BASE}/api/contracts/999`);
   assert.equal(r.status, 404);
