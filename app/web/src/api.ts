@@ -60,6 +60,13 @@ export interface QuoteLine {
   amountOriginal?: number;
 }
 
+export interface QuoteTax {
+  label: string;
+  pct: number;
+  amount: number;
+  mode: 'exclusive' | 'none';
+}
+
 export interface QuoteResult {
   quoteCurrency: string;
   chargeableKg?: number | null;
@@ -67,10 +74,36 @@ export interface QuoteResult {
   meta?: { laneMatched?: boolean };
   lines?: QuoteLine[];
   subtotal: number;
+  tax?: QuoteTax;
   vat: number;
   vatPct?: number;
   total: number;
   warnings?: string[];
+}
+
+export interface Company {
+  legal_name: string;
+  display_name: string;
+  logo: string;
+  address: string;
+  city: string;
+  country: string;
+  tax_id: string;
+  email: string;
+  phone: string;
+  website: string;
+  base_currency: string;
+  fx_rates: Record<string, number>;
+  tax_label: string;
+  tax_rate_pct: number;
+  tax_mode: 'exclusive' | 'none';
+  default_incoterm: string;
+  default_validity_days: number;
+  quote_prefix: string;
+  quote_pad: number;
+  quote_footer_notes: string[];
+  bank_details: string;
+  setup_complete: boolean;
 }
 
 export interface SavedQuoteRow {
@@ -131,6 +164,11 @@ async function api<T>(url: string, opts?: RequestInit): Promise<T> {
   if (!res.ok) throw new Error((body as { error?: string }).error || res.statusText);
   return body as T;
 }
+
+export const getCompany = () => api<Company>('/api/company');
+
+export const putCompany = (patch: Partial<Company>) =>
+  api<Company>('/api/company', { method: 'PUT', body: JSON.stringify(patch) });
 
 export const getContracts = () => api<ContractSummary[]>('/api/contracts');
 

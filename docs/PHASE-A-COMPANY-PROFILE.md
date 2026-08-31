@@ -1,7 +1,9 @@
 # Phase A — Company Profile & branded quote
 
-**Status:** ready to build. Scope: the first slice of
+**Status:** ✅ built on branch `worktree-whitelabel-ui`. All 7 deliverables
+shipped; 40 tests green (11 new). Scope: the first slice of
 `docs/GENERALIZATION-PLAN.md` (§3, §4.4, §5.2, §5.3, §5.5, H3, H11–H14).
+This document is the as-built spec.
 
 **Goal:** every screen and every quote carries *this company's* identity,
 currency label, tax wording and quote numbering — driven by one editable

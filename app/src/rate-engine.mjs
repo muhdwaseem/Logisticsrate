@@ -153,8 +153,13 @@ function accessorialAmount(acc, ctx) {
  *   lanes:    [{ mode, loadType, origin, destination, equipment, currency, minChargeKg, minCharge, breaks:[{upTo,rate}], flatRates:{equip:rate} }],
  *   accessorials: [{ code, label, mode, basis, rate, currency, appliesWhen }]
  * }
+ *
+ * company (optional): the single-row Company Profile. When present it supplies
+ * the tax label/mode/rate, default incoterm and validity, and footer notes —
+ * always as the lowest-priority fallback (request → tariff → company → built-in).
+ * Omit it and the tariff's own values are used, exactly as before.
  */
-export function computeQuote(request, contractData) {
+export function computeQuote(request, contractData, company = null) {
   const warnings = [];
   const { contract = {}, lanes = [], accessorials = [] } = contractData || {};
   const quoteCurrency = request.quoteCurrency || contract.currency || 'AED';
@@ -267,11 +272,17 @@ export function computeQuote(request, contractData) {
     });
   }
 
-  // 6. Totals
+  // 6. Totals & tax
+  // Resolution order: request → tariff → company → built-in.
   const subtotal = round2(sum(lines.map(l => l.amount)));
-  const vatPct = request.options?.applyVat === false ? 0 : (Number(contract.vatPct) || 0);
-  const vat = round2(subtotal * vatPct / 100);
-  const total = round2(subtotal + vat);
+  const taxMode = contract.taxMode || company?.tax_mode || 'exclusive';
+  const taxLabel = contract.taxLabel || company?.tax_label || 'VAT';
+  const taxPct =
+    request.options?.applyVat === false || taxMode === 'none'
+      ? 0
+      : Number(contract.vatPct ?? contract.taxRatePct ?? company?.tax_rate_pct ?? 0) || 0;
+  const taxAmount = round2(subtotal * taxPct / 100);
+  const total = round2(subtotal + taxAmount);
 
   return {
     quoteCurrency,
@@ -279,16 +290,22 @@ export function computeQuote(request, contractData) {
     chargeableKg,
     lines,
     subtotal,
-    vatPct,
-    vat,
+    tax: { label: taxLabel, pct: taxPct, amount: taxAmount, mode: taxMode },
+    // legacy aliases — kept so older callers / stored quotes keep working
+    vatPct: taxPct,
+    vat: taxAmount,
     total,
     warnings,
     meta: {
       contract: contract.name || null,
-      incoterm: request.incoterm || contract.incoterm || 'EXW',
-      validUntil: addDays(new Date(), Number(contract.validityDays) || 14).toISOString().slice(0, 10),
+      incoterm: request.incoterm || contract.incoterm || company?.default_incoterm || 'EXW',
+      validUntil: addDays(
+        new Date(),
+        Number(contract.validityDays) || Number(company?.default_validity_days) || 14,
+      ).toISOString().slice(0, 10),
       laneMatched: !!lane,
       notes: contract.notes || [],
+      footerNotes: company?.quote_footer_notes || [],
     },
   };
 }

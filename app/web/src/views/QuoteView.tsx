@@ -10,6 +10,7 @@ import {
   money,
   priceQuote,
   saveQuote,
+  type Company,
   type Contract,
   type ContractSummary,
   type Lane,
@@ -115,6 +116,7 @@ interface Props {
   contracts: ContractSummary[];
   contractId: number | null;
   contract: Contract | null;
+  company: Company | null;
   onContractChange: (id: number) => void;
 }
 
@@ -122,6 +124,7 @@ export function QuoteView({
   contracts,
   contractId,
   contract,
+  company,
   onContractChange,
 }: Props) {
   const toast = useToast();
@@ -134,6 +137,20 @@ export function QuoteView({
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  type BoolKey =
+    | 'applyVat'
+    | 'dangerousGoods'
+    | 'originDutyPaid'
+    | 'originalDocsReceived'
+    | 'insure';
+  const boolChecks: [BoolKey, string][] = [
+    ['applyVat', `Apply ${company?.tax_label || 'VAT'}`],
+    ['dangerousGoods', 'Dangerous goods'],
+    ['originDutyPaid', 'Duty-paid origin'],
+    ['originalDocsReceived', 'Original docs received (sea)'],
+    ['insure', 'Insure cargo'],
+  ];
 
   const lanes: Lane[] = useMemo(
     () => contract?.data?.lanes ?? [],
@@ -637,24 +654,18 @@ export function QuoteView({
             </div>
 
             <div className="checks">
-              {(
-                [
-                  ['applyVat', 'Apply VAT'],
-                  ['dangerousGoods', 'Dangerous goods'],
-                  ['originDutyPaid', 'Duty-paid origin'],
-                  ['originalDocsReceived', 'Original docs received (sea)'],
-                  ['insure', 'Insure cargo'],
-                ] as const
-              ).map(([key, label]) => (
-                <label className="check" key={key}>
-                  <input
-                    type="checkbox"
-                    checked={form[key]}
-                    onChange={(e) => set(key, e.target.checked)}
-                  />{' '}
-                  {label}
-                </label>
-              ))}
+              {boolChecks
+                .filter(([key]) => key !== 'applyVat' || company?.tax_mode !== 'none')
+                .map(([key, label]) => (
+                  <label className="check" key={key}>
+                    <input
+                      type="checkbox"
+                      checked={form[key]}
+                      onChange={(e) => set(key, e.target.checked)}
+                    />{' '}
+                    {label}
+                  </label>
+                ))}
             </div>
 
             <div className="row3">
@@ -821,12 +832,17 @@ export function QuoteView({
                       </td>
                       <td className="num">{money(result.subtotal, ccy)}</td>
                     </tr>
-                    <tr>
-                      <td colSpan={2} className="num">
-                        VAT ({result.vatPct || 0}%)
-                      </td>
-                      <td className="num">{money(result.vat, ccy)}</td>
-                    </tr>
+                    {result.tax?.mode !== 'none' && (
+                      <tr>
+                        <td colSpan={2} className="num">
+                          {result.tax?.label ?? 'VAT'} (
+                          {result.tax?.pct ?? result.vatPct ?? 0}%)
+                        </td>
+                        <td className="num">
+                          {money(result.tax?.amount ?? result.vat, ccy)}
+                        </td>
+                      </tr>
+                    )}
                     <tr className="total">
                       <td colSpan={2} className="num">
                         Total

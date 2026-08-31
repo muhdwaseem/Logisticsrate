@@ -23,7 +23,7 @@ SoftwareforlogisticsSME/
 │  │  ├─ db.mjs                       persistence (node:sqlite, no deps)
 │  │  └─ quote-doc.mjs                printable quotation document (HTML → PDF via browser)
 │  ├─ web/                            single-page UI — React + Vite + TypeScript
-│  │  └─ src/                         App.tsx, api.ts, views/{Quote,Saved,Tariff}View.tsx
+│  │  └─ src/                         App.tsx, api.ts, views/{Quote,Saved,Tariff,Settings}View.tsx
 │  ├─ public/                         build output of app/web (git-ignored; served by server.mjs)
 │  └─ test/rate-engine.test.mjs       unit tests (node --test)
 └─ data/freight.db                    created on first run
@@ -89,6 +89,8 @@ server.mjs`, mount a volume and set `FREIGHT_DB` to a path on it for persistence
 | Save quote → sequential ref (Q2026-0001) → printable PDF-ready document | ✅ |
 | Quote pipeline status (draft / sent / won / lost) | ✅ |
 | Tariff viewer + JSON editor (edit lanes/accessorials, pricing updates live) | ✅ |
+| Company profile — logo, letterhead, tax label/mode, FX table, quote-ref prefix (Settings screen) | ✅ |
+| Branded printable quotation (company letterhead, from-block, tax wording, bank details) | ✅ |
 | Add more carrier tariffs via `POST /api/contracts` | ✅ API only |
 
 ## What this starter deliberately is not
@@ -102,6 +104,8 @@ server.mjs`, mount a volume and set `FREIGHT_DB` to a path on it for persistence
 
 ```
 GET  /api/health
+GET  /api/company                   company profile (branding, tax wording, quote numbering)
+PUT  /api/company                   update the company profile
 GET  /api/contracts                 list tariffs
 GET  /api/contracts/:id             full tariff (contract + lanes + accessorials)
 POST /api/contracts                 { carrierName, name, customer, currency, data }

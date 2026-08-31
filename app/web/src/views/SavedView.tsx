@@ -3,6 +3,7 @@ import {
   getQuotes,
   money,
   setQuoteStatus,
+  type Company,
   type QuoteStatus,
   type SavedQuoteRow,
 } from '../api';
@@ -10,7 +11,7 @@ import { useToast } from '../components/Toast';
 
 const STATUSES: QuoteStatus[] = ['draft', 'sent', 'won', 'lost'];
 
-export function SavedView() {
+export function SavedView({ company }: { company: Company | null }) {
   const toast = useToast();
   const [rows, setRows] = useState<SavedQuoteRow[] | null>(null);
 
@@ -75,7 +76,12 @@ export function SavedView() {
                   <td>
                     {q.mode} {q.load_type || ''}
                   </td>
-                  <td className="num">{money(q.total, q.quote_currency || 'AED')}</td>
+                  <td className="num">
+                    {money(
+                      q.total,
+                      q.quote_currency || company?.base_currency || 'AED',
+                    )}
+                  </td>
                   <td>
                     <span className={`pill ${q.status}`}>{q.status}</span>
                   </td>
