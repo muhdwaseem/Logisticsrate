@@ -23,7 +23,7 @@ export function renderQuoteHtml(q, contract, company = null) {
 
   const rows = (r.lines || []).map(l => `
     <tr>
-      <td>${esc(l.label)}${l.detail ? `<div class="sub">${esc(l.detail)}</div>` : ''}</td>
+      <td>${esc(l.label)}${l.source === 'optional' ? ' <span class="opt">(optional)</span>' : ''}${l.detail ? `<div class="sub">${esc(l.detail)}</div>` : ''}</td>
       <td class="num">${esc(l.qty)} ${esc(l.unit || '')}</td>
       <td class="num">${l.currency && l.currency !== ccy ? esc(l.currency) + ' ' + Number(l.amountOriginal).toLocaleString('en-US', { minimumFractionDigits: 2 }) : ''}</td>
       <td class="num">${money(l.amount, ccy)}</td>
@@ -100,6 +100,7 @@ export function renderQuoteHtml(q, contract, company = null) {
   th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
   .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .opt { color: var(--muted); font-size: 11px; font-weight: 600; }
   tfoot td { border: none; padding: 6px 8px; }
   tfoot .total td { border-top: 2px solid var(--ink); font-weight: 800; font-size: 16px; padding-top: 10px; }
   .warn { background: #fff7e9; border: 1px solid #ecc57e; color: #7a5312; border-radius: 8px;

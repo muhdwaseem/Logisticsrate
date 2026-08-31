@@ -278,6 +278,9 @@ export function computeQuote(request, contractData, company = null) {
       currency: acc.currency || laneCurrency,
       amount: convert(amount, acc.currency || laneCurrency, quoteCurrency, fx),
       amountOriginal: amount,
+      // 'auto' = derived from the shipment details; 'optional' = the user
+      // ticked it in the Optional charges list (a manual accessorial).
+      source: acc.appliesWhen === 'manual' ? 'optional' : 'auto',
     });
   }
 

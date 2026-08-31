@@ -32,7 +32,10 @@ export const provider = {
 function ltl(destination, minCharge, perKgByBreak, transitDays) {
   const [b500, b1000, b2000, b3000, b4000, bMax] = perKgByBreak;
   return {
-    mode: 'land', loadType: 'LTL', origin: 'Jebel Ali', destination, equipment: null,
+    // origin null: the rate is valid for pick-up from any UAE point
+    // (Jebel Ali / Dubai / Sharjah / free zones). Origin-specific export /
+    // BOE declaration fees are added as accessorials.
+    mode: 'land', loadType: 'LTL', origin: null, destination, equipment: null,
     currency: 'AED', minChargeKg: 100, minCharge, transitDays,
     breaks: [
       { upTo: 500, rate: b500 },
@@ -46,7 +49,8 @@ function ltl(destination, minCharge, perKgByBreak, transitDays) {
 }
 
 function ftl(destination, flatRates, transitDays) {
-  return { mode: 'land', loadType: 'FTL', origin: 'Jebel Ali', destination, currency: 'AED', flatRates, transitDays };
+  // origin null — valid for pick-up from any UAE point (see ltl()).
+  return { mode: 'land', loadType: 'FTL', origin: null, destination, currency: 'AED', flatRates, transitDays };
 }
 
 function local(from, to, r3t, r7t) {

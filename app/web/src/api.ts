@@ -58,6 +58,7 @@ export interface QuoteLine {
   amount: number;
   currency?: string;
   amountOriginal?: number;
+  source?: 'auto' | 'optional';
 }
 
 export interface QuoteTax {
