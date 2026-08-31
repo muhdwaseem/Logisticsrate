@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chargeableWeight, pickRateBreak, computeQuote, round2, convert } from '../src/rate-engine.mjs';
-import { defaultTariff, whiteEagleTariff } from '../src/seed-tariff.mjs';
+import { defaultTariff } from '../src/seed-tariff.mjs';
 
 const DATA = {
   contract: defaultTariff.contract,
@@ -9,11 +9,8 @@ const DATA = {
   accessorials: defaultTariff.accessorials,
 };
 
-const WE = {
-  contract: whiteEagleTariff.contract,
-  lanes: whiteEagleTariff.lanes,
-  accessorials: whiteEagleTariff.accessorials,
-};
+// Local (White Eagle) lanes are now folded into the one combined tariff.
+const WE = DATA;
 
 test('chargeableWeight — air uses higher of gross vs volumetric (/6000)', () => {
   // 100x80x60 cm = 480000 cm³ -> /6000 = 80 kg volumetric; gross 50 -> chargeable 80
@@ -227,10 +224,11 @@ test('convert() round-trips via AED', () => {
   assert.equal(convert(1, 'USD', 'AED', { USD: 3.6725 }), 3.67);
 });
 
-test('seed tariff is the Aramex / Modern Line agreement', () => {
+test('seed tariff — combined UAE land transport (Aramex cross-border + local)', () => {
   assert.equal(defaultTariff.carrier.name, 'Aramex Emirates LLC');
   assert.equal(defaultTariff.contract.customer, 'Modern Line Distribution LLC');
-  assert.match(defaultTariff.contract.name, /Aramex/);
+  const types = new Set(defaultTariff.lanes.map(l => l.loadType));
+  assert.ok(types.has('LTL') && types.has('FTL') && types.has('LOCAL'));
 });
 
 // ---- Phase A: Company Profile & configurable tax --------------------------

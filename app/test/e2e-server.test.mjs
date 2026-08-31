@@ -77,20 +77,18 @@ test('GET /api/contracts/1 — full tariff for Modern Line Distribution', async 
   assert.equal(b.customer, 'Modern Line Distribution LLC');
 });
 
-test('GET /api/contracts — both Aramex and White Eagle are seeded', async () => {
-  const b = await (await fetch(`${BASE}/api/contracts`)).json();
-  assert.ok(b.some(c => /Aramex/.test(c.carrier)));
-  assert.ok(b.some(c => /White Eagle/.test(c.carrier)));
+test('GET /api/contracts/1 — combined tariff has LTL, FTL and LOCAL lanes', async () => {
+  const b = await (await fetch(`${BASE}/api/contracts/1`)).json();
+  const types = new Set(b.data.lanes.map(l => l.loadType));
+  assert.ok(types.has('LTL') && types.has('FTL') && types.has('LOCAL'));
 });
 
-test('POST /api/quote — White Eagle local trip prices per truck', async () => {
-  const we = (await (await fetch(`${BASE}/api/contracts`)).json())
-    .find(c => /White Eagle/.test(c.carrier));
+test('POST /api/quote — local (intra-UAE) trip prices per truck', async () => {
   const r = await fetch(`${BASE}/api/quote`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      contractId: we.id,
+      contractId: 1,
       request: {
         mode: 'land', loadType: 'LOCAL', origin: 'Jebel Ali', destination: 'Dubai',
         equipment: '3T', containers: 1, options: { applyVat: true },

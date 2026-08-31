@@ -12,7 +12,6 @@ import {
   saveQuote,
   type Company,
   type Contract,
-  type ContractSummary,
   type Lane,
   type QuoteRequest,
   type QuoteResult,
@@ -115,20 +114,12 @@ const initialForm: FormState = {
 const num = (s: string) => Number(s) || 0;
 
 interface Props {
-  contracts: ContractSummary[];
   contractId: number | null;
   contract: Contract | null;
   company: Company | null;
-  onContractChange: (id: number) => void;
 }
 
-export function QuoteView({
-  contracts,
-  contractId,
-  contract,
-  company,
-  onContractChange,
-}: Props) {
+export function QuoteView({ contractId, contract, company }: Props) {
   const toast = useToast();
   const [form, setForm] = useState<FormState>(initialForm);
   const [pieces, setPieces] = useState<PieceRow[]>([emptyPiece()]);
@@ -384,21 +375,6 @@ export function QuoteView({
             <div className="fg-head">
               <h3>Route &amp; service</h3>
             </div>
-
-            <label className="field">
-              Tariff
-              <select
-                required
-                value={contractId ?? ''}
-                onChange={(e) => onContractChange(Number(e.target.value))}
-              >
-                {contracts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
 
             <div className="row3">
               <label className="field">
