@@ -14,7 +14,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defaultTariff } from './seed-tariff.mjs';
+import { defaultTariff, provider } from './seed-tariff.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.FREIGHT_DB || join(__dirname, '..', '..', 'data', 'freight.db');
@@ -116,27 +116,32 @@ function seedIfEmpty() {
 }
 seedIfEmpty();
 
-// Ensure the single company row exists. On a database that already has a
-// tariff we don't nag for setup — we pre-fill currency/tax from that tariff
-// and mark setup complete so the app is immediately usable.
+// Ensure the single company row exists, pre-filled with the provider identity
+// (Aramex) from seed-tariff.mjs so the letterhead is right out of the box.
 function ensureCompanyRow() {
   const { count } = db.prepare('SELECT COUNT(*) AS count FROM company').get();
   if (count > 0) return;
   const anyContract = db.prepare('SELECT currency, data_json FROM contracts ORDER BY id LIMIT 1').get();
-  let baseCurrency = 'AED';
-  let taxLabel = 'VAT';
-  let taxRatePct = 0;
+  let baseCurrency = provider.base_currency || 'AED';
   if (anyContract) {
-    baseCurrency = anyContract.currency || 'AED';
     const c = safeParse(anyContract.data_json, {})?.contract || {};
-    if (c.currency) baseCurrency = c.currency;
-    if (c.vatPct != null) taxRatePct = Number(c.vatPct) || 0;
+    baseCurrency = c.currency || anyContract.currency || baseCurrency;
   }
   db.prepare(`
-    INSERT INTO company (id, base_currency, tax_label, tax_rate_pct, tax_mode, setup_complete)
-    VALUES (1, ?, ?, ?, 'exclusive', ?)
-  `).run(baseCurrency, taxLabel, taxRatePct, anyContract ? 1 : 0);
-  console.log('[db] created company profile row');
+    INSERT INTO company
+      (id, legal_name, display_name, address, city, country, email, phone, website,
+       base_currency, tax_label, tax_rate_pct, tax_mode,
+       default_incoterm, quote_footer_notes_json, setup_complete)
+    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'exclusive', ?, ?, 1)
+  `).run(
+    provider.legal_name ?? null, provider.display_name ?? null,
+    provider.address ?? null, provider.city ?? null, provider.country ?? null,
+    provider.email ?? null, provider.phone ?? null, provider.website ?? null,
+    baseCurrency, provider.tax_label ?? 'VAT', Number(provider.tax_rate_pct) || 0,
+    provider.default_incoterm ?? 'FCA Jebel Ali',
+    JSON.stringify(provider.quote_footer_notes ?? []),
+  );
+  console.log('[db] created company profile row (Aramex)');
 }
 ensureCompanyRow();
 

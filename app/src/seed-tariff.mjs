@@ -1,23 +1,40 @@
 /**
- * Sample tariff — a worked example rate card the engine ships seeded with,
- * so the system is usable the moment it starts.
- *
- * The numbers below are an illustrative UAE-outbound tariff (air / sea / land,
- * LTL & FTL, with fuel, customs, insurance and collection surcharges). Replace
- * this record with your own carrier contracts via the Rate cards screen or
- * `POST /api/contracts` — one record per carrier agreement.
+ * Aramex UAE land-transport tariff, as agreed with Modern Line Distribution LLC
+ * (Services Agreement, commencement 11/10/2024). Air / sea / customs lanes are
+ * quote-based per the agreement; LTL and FTL road rates are the contracted
+ * schedule. The system ships seeded with this so it is usable on first start.
  */
+
+// Provider identity — used to pre-fill the company profile on first run.
+export const provider = {
+  legal_name: 'Aramex Emirates LLC',
+  display_name: 'Aramex',
+  address: 'PO Box 1216\nBuilding and Warehouse No. 3, Um Ramool',
+  city: 'Dubai',
+  country: 'United Arab Emirates',
+  email: 'DXBJALSALES@aramex.com',
+  phone: '+971 600 544000',
+  website: 'aramex.com',
+  base_currency: 'AED',
+  default_incoterm: 'FCA Jebel Ali',
+  tax_label: 'VAT',
+  tax_rate_pct: 5,
+  quote_footer_notes: [
+    'Air & Sea freight and Customs Clearance are quote-based: a fee quote is issued per shipment for written approval.',
+    'This quotation is governed by the Aramex Services Agreement and its General Terms.',
+  ],
+};
 
 export const defaultTariff = {
   carrier: {
-    name: 'Sample Carrier',
+    name: 'Aramex Emirates LLC',
     country: 'AE',
-    contact: null,
-    email: null,
+    contact: '+971 600 544000',
+    email: 'DXBJALSALES@aramex.com',
   },
   contract: {
-    name: 'Sample Tariff — UAE Outbound 2024',
-    customer: null,
+    name: 'Aramex — Modern Line Distribution (UAE Land Transport)',
+    customer: 'Modern Line Distribution LLC',
     currency: 'AED',
     commencementDate: '2024-10-11',
     territory: 'United Arab Emirates',
@@ -142,6 +159,8 @@ function collection(emirate, truckType, rate) {
     code: `COLLECTION_${emirate.toUpperCase()}_${truckType}`,
     label: `Collection ${emirate} (${truckType.replace('FT', 'ft trailer').replace('T', ' Ton')})`,
     mode: 'land', basis: 'flat', rate, currency: 'AED',
-    appliesWhen: 'manual', emirate, truckType,
+    // auto-applies once a pickup zone + truck type are chosen; the engine's
+    // zone/truckType guards then select the one matching row.
+    appliesWhen: 'if_pickup_collection', emirate, truckType,
   };
 }

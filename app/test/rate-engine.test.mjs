@@ -113,16 +113,22 @@ test('Dangerous goods handling — flat 225 when flagged', () => {
   assert.equal(q.lines.find(l => l.code === 'DGR').amount, 225);
 });
 
-test('Collection charge — Fujairah 10 Ton, AED 1000, only when selected', () => {
-  const base = {
+test('Collection charge — auto-applies for the chosen pickup zone + truck', () => {
+  // no pickup zone/truck → no collection line
+  const none = computeQuote({
+    mode: 'land', loadType: 'LTL', destination: 'Bahrain', origin: 'Jebel Ali', grossWeightKg: 600,
+    options: { applyVat: false },
+  }, DATA);
+  assert.equal(none.lines.some(l => l.code.startsWith('COLLECTION_')), false);
+
+  // pickup zone + truck chosen → the matching collection is added automatically
+  const withPickup = computeQuote({
     mode: 'land', loadType: 'LTL', destination: 'Bahrain', origin: 'Jebel Ali', grossWeightKg: 600,
     options: { applyVat: false, pickupEmirate: 'Fujairah', pickupTruckType: '10T' },
-  };
-  const without = computeQuote(base, DATA);
-  assert.equal(without.lines.some(l => l.code.startsWith('COLLECTION_')), false);
-
-  const withSel = computeQuote({ ...base, selectedAccessorials: ['COLLECTION_FUJAIRAH_10T'] }, DATA);
-  assert.equal(withSel.lines.find(l => l.code === 'COLLECTION_FUJAIRAH_10T').amount, 1000);
+  }, DATA);
+  assert.equal(withPickup.lines.find(l => l.code === 'COLLECTION_FUJAIRAH_10T').amount, 1000);
+  // only the one matching row, not every Fujairah/10T combination
+  assert.equal(withPickup.lines.filter(l => l.code.startsWith('COLLECTION_')).length, 1);
 });
 
 test('Currency conversion — USD accessorial shown in AED quote', () => {
@@ -141,12 +147,10 @@ test('convert() round-trips via AED', () => {
   assert.equal(convert(1, 'USD', 'AED', { USD: 3.6725 }), 3.67);
 });
 
-test('white-label — sample tariff carries no source-contract provenance', () => {
-  const blob = JSON.stringify(defaultTariff);
-  assert.doesNotMatch(blob, /aramex/i);
-  assert.doesNotMatch(blob, /modern\s*line/i);
-  assert.equal(defaultTariff.contract.customer, null);
-  assert.equal(defaultTariff.carrier.email, null);
+test('seed tariff is the Aramex / Modern Line agreement', () => {
+  assert.equal(defaultTariff.carrier.name, 'Aramex Emirates LLC');
+  assert.equal(defaultTariff.contract.customer, 'Modern Line Distribution LLC');
+  assert.match(defaultTariff.contract.name, /Aramex/);
 });
 
 // ---- Phase A: Company Profile & configurable tax --------------------------

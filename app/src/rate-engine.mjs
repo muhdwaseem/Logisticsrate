@@ -110,6 +110,7 @@ const PREDICATES = {
   if_insure: (r) => !!r.options?.insure && Number(r.options?.cargoValueAed) > 0,
   if_palletize: (r) => !!r.options?.palletize,
   if_pickup_other_emirate: (r) => !!r.options?.pickupEmirate && r.options.pickupEmirate !== 'Jebel Ali' && r.options.pickupEmirate !== 'Dubai' && r.options.pickupEmirate !== 'Sharjah',
+  if_pickup_collection: (r) => !!r.options?.pickupEmirate && !!r.options?.pickupTruckType,
   if_origin_saif: (r) => /saif/i.test(r.origin || ''),
   if_origin_dafza: (r) => /dafza/i.test(r.origin || ''),
   if_origin_dutypaid: (r) => !!r.options?.originDutyPaid,
