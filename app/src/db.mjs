@@ -14,7 +14,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defaultTariff, whiteEagleTariff, provider } from './seed-tariff.mjs';
+import { defaultTariff, provider } from './seed-tariff.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.FREIGHT_DB || join(__dirname, '..', '..', 'data', 'freight.db');
@@ -101,16 +101,17 @@ function safeParse(s, fallback) {
 function seedIfEmpty() {
   const { count } = db.prepare('SELECT COUNT(*) AS count FROM carriers').get();
   if (count > 0) return;
-  const insCarrier = db.prepare('INSERT INTO carriers (name, country, contact, email) VALUES (?, ?, ?, ?)');
-  const insContract = db.prepare('INSERT INTO contracts (carrier_id, name, customer, currency, data_json) VALUES (?, ?, ?, ?, ?)');
-  for (const c of [defaultTariff, whiteEagleTariff]) {
-    const carrierId = insCarrier.run(c.carrier.name, c.carrier.country, c.carrier.contact, c.carrier.email).lastInsertRowid;
-    insContract.run(
-      carrierId, c.contract.name, c.contract.customer, c.contract.currency,
-      JSON.stringify({ contract: c.contract, lanes: c.lanes, accessorials: c.accessorials }),
-    );
-  }
-  console.log('[db] seeded Aramex + White Eagle tariffs');
+  const c = defaultTariff;
+  const carrierId = db.prepare(
+    'INSERT INTO carriers (name, country, contact, email) VALUES (?, ?, ?, ?)'
+  ).run(c.carrier.name, c.carrier.country, c.carrier.contact, c.carrier.email).lastInsertRowid;
+  db.prepare(
+    'INSERT INTO contracts (carrier_id, name, customer, currency, data_json) VALUES (?, ?, ?, ?, ?)'
+  ).run(
+    carrierId, c.contract.name, c.contract.customer, c.contract.currency,
+    JSON.stringify({ contract: c.contract, lanes: c.lanes, accessorials: c.accessorials }),
+  );
+  console.log('[db] seeded UAE land-transport tariff');
 }
 seedIfEmpty();
 

@@ -1,15 +1,17 @@
 /**
- * Aramex UAE land-transport tariff, as agreed with Modern Line Distribution LLC
- * (Services Agreement, commencement 11/10/2024). Air / sea / customs lanes are
- * quote-based per the agreement; LTL and FTL road rates are the contracted
- * schedule (Part C — Rates for Land Freight). Transit days come from the
- * Outbound-UAE service schedule. The system ships seeded with this.
+ * Seeded UAE land-transport tariff — one combined rate card covering:
+ *   - cross-border LTL & FTL from the Aramex / Modern Line Distribution
+ *     Services Agreement (Part C — Rates for Land Freight), and
+ *   - local intra-UAE per-trip haulage from the White Eagle Transport
+ *     quotation (TRN 100052344700003).
+ * The load type (LTL / FTL / LOCAL) + destination selects which lanes apply.
+ * Air / sea / customs remain quote-based.
  */
 
-// Provider identity — used to pre-fill the company profile on first run.
+// Provider identity — pre-fills the company profile / letterhead on first run.
 export const provider = {
   legal_name: 'Aramex Emirates LLC',
-  display_name: 'Aramex',
+  display_name: 'Freight & Trucking Quote',
   address: 'PO Box 1216\nBuilding and Warehouse No. 3, Um Ramool',
   city: 'Dubai',
   country: 'United Arab Emirates',
@@ -22,116 +24,7 @@ export const provider = {
   tax_rate_pct: 5,
   quote_footer_notes: [
     'Air & Sea freight and Customs Clearance are quote-based: a fee quote is issued per shipment for written approval.',
-    'This quotation is governed by the Aramex Services Agreement and its General Terms.',
-  ],
-};
-
-export const defaultTariff = {
-  carrier: {
-    name: 'Aramex Emirates LLC',
-    country: 'AE',
-    contact: '+971 600 544000',
-    email: 'DXBJALSALES@aramex.com',
-  },
-  contract: {
-    name: 'Aramex — Modern Line Distribution (UAE Land Transport)',
-    customer: 'Modern Line Distribution LLC',
-    currency: 'AED',
-    commencementDate: '2024-10-11',
-    territory: 'United Arab Emirates',
-    paymentTerms: '30 days from date of invoice',
-    escalation: 'CPI or 5% (whichever, if no % inserted CPI applies)',
-    fscPct: 10,            // 10% fuel surcharge on the LTL land base rates
-    vatPct: 5,             // UAE VAT
-    incoterm: 'FCA Jebel Ali',
-    validityDays: 14,
-    fx: { AED: 1, USD: 3.6725, KWD: 12.0 },
-    notes: [
-      'All land rates in AED. Rates valid for pick-up from Jebel Ali / Dubai / Sharjah, delivery to main cities at destination within city limits.',
-      'Land chargeable weight = higher of gross or volumetric (L×W×H cm / 4000, or 1 CBM = 250 kg). LTL standard pallet 120×100×200 cm; odd sizes quoted on volume.',
-      'LTL rates include a 10% fuel surcharge on the per-kg base; documentation (BOE) charges are added per shipment by origin.',
-      'LTL pick-up from other Emirates / Dubai areas / remote areas: additional AED 0.50/kg or higher depending on area.',
-      'FTL rates apply to Aramex branded / bonded (Aramex-to-Aramex) trucks; non-branded trucks incur 3rd-party brokerage / in-transit fees at actual cost.',
-      'KSA transit visa for BAH / KWI / DOH (in-transit immigration) is excluded; added at cost if reinstated.',
-      'Insurance excluded — available at 2.5% of C&F invoice value, subject to T&C.',
-      'Customs duties, taxes, clearance-related charges, warehouse storage and other surcharges are not included.',
-      '5 free warehouse days at destination; storage per tariff thereafter.',
-      'Demurrage AED 350/day to BAH / KWI / KSA after 48h at the destination border (next day for Muscat if not offloaded). Reefer demurrage case by case.',
-      'FTL cancellation AED 550 once the truck is booked for collection.',
-      'Air & Sea freight and Customs Clearance are quote-based: a fee quote is issued per shipment for written approval.',
-    ],
-  },
-
-  lanes: [
-    // ---- LAND · LTL (Less Truck Load) door-to-door, ex Dubai, AED/kg -----------
-    // ltl(destination, min charge ≤100kg, [101-500, 501-1000, 1001-2000, 2001-3000, 3001-4000, 4001+], transit days)
-    ltl('Muscat - Oman',  150, [1.10, 1.05, 1.00, 0.95, 0.90, 0.90], 1),
-    ltl('Kuwait',         200, [1.70, 1.40, 1.40, 1.30, 1.30, 1.20], 5),
-    ltl('Amman - Jordan', 300, [2.80, 2.55, 2.50, 2.45, 2.40, 2.30], 7),
-    ltl('Bahrain',        200, [1.60, 1.30, 1.30, 1.20, 1.20, 1.10], 4),
-    ltl('KSA - Dammam',   200, [1.40, 1.30, 1.30, 1.20, 1.20, 1.10], 5),
-    ltl('KSA - Riyadh',   200, [1.50, 1.40, 1.40, 1.30, 1.30, 1.20], 5),
-    ltl('KSA - Jeddah',   250, [1.70, 1.60, 1.60, 1.50, 1.50, 1.40], 6),
-    ltl('Qatar - Doha',   200, [1.50, 1.40, 1.40, 1.30, 1.30, 1.20], 4),
-
-    // ---- LAND · FTL (Full Truck Load) outbound Jebel Ali free zone, AED --------
-    // equipment: closed box dry 13.6m | reefer 13.6m | closed box dry 15m
-    ftl('BAH',            { 'closed-box-13.6': 6150, 'reefer-13.6': 7350, 'closed-box-15': 6700 }, 4),
-    ftl('DOH',            { 'closed-box-13.6': 4815, 'reefer-13.6': 6015, 'closed-box-15': 5365 }, 4),
-    ftl('KWI',            { 'closed-box-13.6': 6475, 'reefer-13.6': 7675, 'closed-box-15': 7025 }, 5),
-    ftl('DHA via Batha',  { 'closed-box-13.6': 4880, 'reefer-13.6': 6080, 'closed-box-15': 5430 }, 5),
-    ftl('RUH via Batha',  { 'closed-box-13.6': 5260, 'reefer-13.6': 6460, 'closed-box-15': 5810 }, 5),
-    ftl('JED via Batha',  { 'closed-box-13.6': 7210, 'reefer-13.6': 8410, 'closed-box-15': 7760 }, 6),
-    ftl('DHA via Kifa',   { 'closed-box-13.6': 6207, 'reefer-13.6': 7407, 'closed-box-15': 6757 }, 5),
-    ftl('RUH via Kifa',   { 'closed-box-13.6': 6707, 'reefer-13.6': 7907, 'closed-box-15': 7257 }, 5),
-    ftl('JED via Kifa',   { 'closed-box-13.6': 8707, 'reefer-13.6': 9907, 'closed-box-15': 9257 }, 6),
-    ftl('OMAN',           { 'closed-box-13.6': 3065, 'reefer-13.6': 4265 }, 1),
-
-    // ---- AIR · quote-based (rate keyed manually by forwarder) ------------------
-    quoteLane('air', 'GENERAL', 'Air - any destination'),
-    // ---- SEA · quote-based ----------------------------------------------------
-    quoteLane('sea', 'LCL', 'Sea LCL - any destination'),
-    quoteLane('sea', 'FCL', 'Sea FCL - any destination'),
-    // ---- CUSTOMS CLEARANCE · quote-based ------------------------------------
-    quoteLane('customs', 'CLEARANCE', 'Customs clearance'),
-  ],
-
-  accessorials: [
-    // Fuel surcharge (land) — also derivable from contract.fscPct, kept explicit here.
-    acc('FSC', 'Fuel surcharge (10%)', 'land', 'percent_of_base', 10, 'AED', 'ltl_only'),
-
-    // Bill of Entry / documentation — origin-dependent, per shipment
-    acc('BOE_JEBELALI_NONDUTY', 'BOE + claim ack. — non-duty-paid ex Jebel Ali', 'any', 'per_shipment', 175, 'AED', 'if_origin_jebelali_nonduty'),
-    acc('BOE_DUTYPAID',         'BOE — duty-paid shipment',                        'any', 'per_shipment', 195, 'AED', 'if_origin_dutypaid'),
-    acc('BOE_SAIF',             'Export declaration — SAIF Zone',                  'any', 'per_shipment', 300, 'AED', 'if_origin_saif'),
-    acc('BOE_DAFZA',            'Export declaration — DAFZA',                      'any', 'per_shipment', 325, 'AED', 'if_origin_dafza'),
-    // Destination documentation
-    acc('BOE_OMAN_STATISTICAL', 'Oman statistical BOE / export declaration',       'land', 'per_shipment', 195, 'AED', 'if_dest_oman'),
-
-    // Kuwait (NAS) LTL destination charges — contract states amounts in KWD, billed against official receipt
-    acc('KUWAIT_DO',  'Kuwait delivery order (NAS)',  'land', 'per_shipment', 7,      'KWD', 'if_dest_kuwait'),
-    acc('KUWAIT_PWC', 'Kuwait PWC charges (NAS)',     'land', 'per_shipment', 18.510, 'KWD', 'if_dest_kuwait'),
-
-    // Pickup / collection uplifts
-    acc('PICKUP_OTHER_EMIRATE', 'LTL pickup ex other emirate / remote area (+AED 0.50/kg)', 'land', 'per_kg', 0.50, 'AED', 'manual'),
-    collection('Sharjah',          '3T', 400), collection('Sharjah',          '10T', 650), collection('Sharjah',          '40FT', 800),
-    collection('Sharjah - Hamriya','3T', 450), collection('Sharjah - Hamriya','10T', 800), collection('Sharjah - Hamriya','40FT', 1000),
-    collection('Ajman',            '3T', 400), collection('Ajman',            '10T', 700), collection('Ajman',            '40FT', 800),
-    collection('UAQ',              '3T', 550), collection('UAQ',              '10T', 800), collection('UAQ',              '40FT', 900),
-    collection('RAK',              '3T', 600), collection('RAK',              '10T', 900), collection('RAK',              '40FT', 1100),
-    collection('Fujairah',         '3T', 600), collection('Fujairah',         '10T', 1000), collection('Fujairah',        '40FT', 1200),
-
-    // Handling
-    acc('DGR', 'Dangerous goods handling', 'any', 'per_shipment', 225, 'AED', 'if_dangerous_goods'),
-    acc('PALLETIZE', 'Palletisation (land, on request)', 'land', 'per_shipment', 0, 'AED', 'if_palletize'), // "additional charge" — set per shipment
-
-    // Insurance
-    acc('INSURANCE', 'Cargo insurance (2.5% of C&F value)', 'any', 'percent_of_value', 2.5, 'AED', 'if_insure'),
-
-    // Sea-specific
-    acc('SEA_INSPECTION', 'Container inspection', 'sea', 'per_container', 300, 'AED', 'manual'),
-    acc('SEA_DOCS_DEPOSIT_NR', 'Non-refundable doc service (orig. docs not received)', 'sea', 'per_shipment', 75, 'USD', 'if_sea_docs_not_received'),
-    acc('IMCO_THC', 'IMCO / THC surcharge (DG sea)', 'sea', 'per_container', 0, 'AED', 'manual'),
+    'Cross-border moves are governed by the Aramex Services Agreement and its General Terms; local haulage by the carrier’s standard trading conditions.',
   ],
 };
 
@@ -156,6 +49,13 @@ function ftl(destination, flatRates, transitDays) {
   return { mode: 'land', loadType: 'FTL', origin: 'Jebel Ali', destination, currency: 'AED', flatRates, transitDays };
 }
 
+function local(from, to, r3t, r7t) {
+  return {
+    mode: 'land', loadType: 'LOCAL', origin: from, destination: to,
+    currency: 'AED', flatRates: { '3T': r3t, '7-10T': r7t },
+  };
+}
+
 function quoteLane(mode, loadType, destination) {
   return { mode, loadType, origin: null, destination, currency: 'AED', quoteBased: true };
 }
@@ -176,80 +76,156 @@ function collection(zone, truckType, rate) {
   };
 }
 
-// ===========================================================================
-// White Eagle Transport By Heavy & Light Trucks L.L.C. — local UAE haulage.
-// TRN 100052344700003. Rates are per trip, flat by truck size (3 Ton or
-// 7/10 Ton), for intra-UAE point-to-point moves. Not weight-based.
-// ===========================================================================
-function local(from, to, r3t, r7t) {
-  return {
-    mode: 'land', loadType: 'LOCAL', origin: from, destination: to,
-    currency: 'AED', flatRates: { '3T': r3t, '7-10T': r7t },
-  };
-}
+// ---- White Eagle local UAE lanes (per trip, flat by truck size) ------------
+const whiteEagleLanes = [
+  local('Jebel Ali', 'Jebel Ali',         125, 250),
+  local('Jebel Ali', 'DWC',               175, 325),
+  local('DWC',       'Al Quoz',            275, 450),
+  local('Jebel Ali', 'Dubai',             275, 500),
+  local('DWC',       'Dubai',             325, 550),
+  local('Jebel Ali', 'DIC',               225, 400),
+  local('Jebel Ali', 'DIP',               225, 400),
+  local('Dubai',     'DIC',               300, 600),
+  local('Jebel Ali', 'Sharjah',           350, 600),
+  local('DWC',       'Sharjah',            400, 650),
+  local('Jebel Ali', 'Sharjah SAIF Zone', 400, 700),
+  local('Jebel Ali', 'Sharjah Sajja',     450, 750),
+  local('Jebel Ali', 'Ajman',             450, 750),
+  local('Jebel Ali', 'Hamriya FZE',       550, 850),
+  local('Jebel Ali', 'RAK',               550, 800),
+  local('Jebel Ali', 'Fujairah',          650, 900),
+  local('Jebel Ali', 'Al Ain',            600, 950),
+  local('Jebel Ali', 'Abu Dhabi',         500, 850),
+  local('Jebel Ali', 'Ras Al Khor',       275, 450),
+  local('Jebel Ali', 'UAQ',               500, 800),
+  local('Jebel Ali', 'Khor Fakkan',       700, 900),
+  local('Jebel Ali', 'Khalifa Port',      500, 800),
+  local('Jebel Ali', 'Jazeera Port',      500, 850),
+];
 
-export const whiteEagleTariff = {
+const whiteEagleAccessorials = [
+  acc('WE_EXTRA_COLLECTION',   'Additional collection point on route',     'land', 'flat',          50,  'AED', 'manual'),
+  acc('WE_WAIT_3T_HR',         'Waiting — 3 Ton (per hr after 1h free)',   'land', 'flat',          50,  'AED', 'manual'),
+  acc('WE_WAIT_7T_HR',         'Waiting — 7/10 Ton (per hr after 1h free)','land', 'flat',          100, 'AED', 'manual'),
+  acc('WE_WAIT_3T_DAY',        'Waiting — 3 Ton (full day)',               'land', 'flat',          200, 'AED', 'manual'),
+  acc('WE_WAIT_7T_DAY',        'Waiting — 7/10 Ton (full day)',            'land', 'flat',          400, 'AED', 'manual'),
+  acc('WE_CANCEL_3T',          'Trip cancellation — 3 Ton',                'land', 'per_shipment',  150, 'AED', 'manual'),
+  acc('WE_CANCEL_7T',          'Trip cancellation — 7/10 Ton',             'land', 'per_shipment',  250, 'AED', 'manual'),
+  acc('WE_DETENTION_3T',       'Overnight detention — 3 Ton',              'land', 'per_shipment',  250, 'AED', 'manual'),
+  acc('WE_DETENTION_7T',       'Overnight detention — 7/10 Ton',           'land', 'per_shipment',  400, 'AED', 'manual'),
+  acc('WE_CUSTOMS_SEAL',       'Customs-sealed shipment (per truck)',      'land', 'per_container', 100, 'AED', 'manual'),
+  acc('WE_CUSTOMS_INSPECTION', 'Customs inspection (per truck)',           'land', 'per_container', 50,  'AED', 'manual'),
+];
+
+export const defaultTariff = {
   carrier: {
-    name: 'White Eagle Transport By Heavy & Light Trucks LLC',
+    name: 'Aramex Emirates LLC',
     country: 'AE',
-    contact: '+971 50 454 1270',
-    email: 'akku43@gmail.com',
+    contact: '+971 600 544000',
+    email: 'DXBJALSALES@aramex.com',
   },
   contract: {
-    name: 'White Eagle Transport — UAE Local Distribution',
-    customer: null,
+    name: 'UAE Land Transport — Cross-border & Local',
+    customer: 'Modern Line Distribution LLC',
     currency: 'AED',
+    commencementDate: '2024-10-11',
     territory: 'United Arab Emirates',
-    vatPct: 5,
-    incoterm: 'Local haulage (per trip)',
-    validityDays: 90, // "valid for three months from the date of quotation"
-    fx: { AED: 1 },
+    paymentTerms: '30 days from date of invoice',
+    escalation: 'CPI or 5% (whichever, if no % inserted CPI applies)',
+    fscPct: 10,            // 10% fuel surcharge on the LTL land base rates
+    vatPct: 5,             // UAE VAT
+    incoterm: 'FCA Jebel Ali',
+    validityDays: 14,
+    fx: { AED: 1, USD: 3.6725, KWD: 12.0 },
     notes: [
-      'Local intra-UAE point-to-point haulage. Rate is per trip by truck size — 3 Ton or 7/10 Ton.',
-      'AED 50 per additional collection point on route.',
-      'Free 1 hour (max) at each stuffing / destuffing site; thereafter AED 50/hr or full day AED 200 for 3 Ton, AED 100/hr or full day AED 400 for 7/10 Ton (excluding trip charges).',
-      'Split deliveries are charged, based on distance and time.',
-      'Trip / job cancellation: AED 150 (3 Ton) / AED 250 (7/10 Ton). Overnight detention: AED 250 (3 Ton) / AED 400 (7/10 Ton).',
-      'Customs-sealed shipment: +AED 100/truck. Customs inspection: +AED 50/truck. Tolls (Salik) not included.',
-      'Rates valid three months from date of quotation. Trucks subject to availability. Payment: cash against delivery.',
+      'All land rates in AED. Cross-border rates valid for pick-up from Jebel Ali / Dubai / Sharjah, delivery to main cities at destination within city limits.',
+      'Land chargeable weight = higher of gross or volumetric (L×W×H cm / 4000, or 1 CBM = 250 kg). LTL standard pallet 120×100×200 cm; odd sizes quoted on volume.',
+      'LTL rates include a 10% fuel surcharge on the per-kg base; documentation (BOE) charges are added per shipment by origin.',
+      'LTL pick-up from other Emirates / Dubai areas / remote areas: additional AED 0.50/kg or higher depending on area.',
+      'FTL rates apply to branded / bonded trucks; non-branded trucks incur 3rd-party brokerage / in-transit fees at actual cost.',
+      'KSA transit visa for BAH / KWI / DOH (in-transit immigration) is excluded; added at cost if reinstated.',
+      'Local (intra-UAE) moves are priced per trip by truck size — 3 Ton or 7/10 Ton. Free 1 hour at each stuffing / destuffing site; waiting, split deliveries, cancellation and detention charged per the schedule. Tolls (Salik) not included.',
+      'Insurance excluded — available at 2.5% of C&F invoice value, subject to T&C.',
+      'Customs duties, taxes, clearance-related charges, warehouse storage and other surcharges are not included.',
+      '5 free warehouse days at destination; storage per tariff thereafter.',
+      'Demurrage AED 350/day to BAH / KWI / KSA after 48h at the destination border (next day for Muscat if not offloaded). Reefer demurrage case by case.',
+      'FTL cross-border cancellation AED 550 once the truck is booked for collection.',
+      'Air & Sea freight and Customs Clearance are quote-based: a fee quote is issued per shipment for written approval.',
     ],
   },
+
   lanes: [
-    local('Jebel Ali', 'Jebel Ali',          125, 250),
-    local('Jebel Ali', 'DWC',                 175, 325),
-    local('DWC',       'Al Quoz',             275, 450),
-    local('Jebel Ali', 'Dubai',              275, 500),
-    local('DWC',       'Dubai',              325, 550),
-    local('Jebel Ali', 'DIC',                225, 400),
-    local('Jebel Ali', 'DIP',                225, 400),
-    local('Dubai',     'DIC',                300, 600),
-    local('Jebel Ali', 'Sharjah',           350, 600),
-    local('DWC',       'Sharjah',            400, 650),
-    local('Jebel Ali', 'Sharjah SAIF Zone', 400, 700),
-    local('Jebel Ali', 'Sharjah Sajja',     450, 750),
-    local('Jebel Ali', 'Ajman',             450, 750),
-    local('Jebel Ali', 'Hamriya FZE',       550, 850),
-    local('Jebel Ali', 'RAK',               550, 800),
-    local('Jebel Ali', 'Fujairah',          650, 900),
-    local('Jebel Ali', 'Al Ain',            600, 950),
-    local('Jebel Ali', 'Abu Dhabi',         500, 850),
-    local('Jebel Ali', 'Ras Al Khor',       275, 450),
-    local('Jebel Ali', 'UAQ',               500, 800),
-    local('Jebel Ali', 'Khor Fakkan',       700, 900),
-    local('Jebel Ali', 'Khalifa Port',      500, 800),
-    local('Jebel Ali', 'Jazeera Port',      500, 850),
+    // ---- CROSS-BORDER · LTL (Less Truck Load) door-to-door, ex Dubai, AED/kg ---
+    // ltl(destination, min charge ≤100kg, [101-500, 501-1000, 1001-2000, 2001-3000, 3001-4000, 4001+], transit days)
+    ltl('Muscat - Oman',  150, [1.10, 1.05, 1.00, 0.95, 0.90, 0.90], 1),
+    ltl('Kuwait',         200, [1.70, 1.40, 1.40, 1.30, 1.30, 1.20], 5),
+    ltl('Amman - Jordan', 300, [2.80, 2.55, 2.50, 2.45, 2.40, 2.30], 7),
+    ltl('Bahrain',        200, [1.60, 1.30, 1.30, 1.20, 1.20, 1.10], 4),
+    ltl('KSA - Dammam',   200, [1.40, 1.30, 1.30, 1.20, 1.20, 1.10], 5),
+    ltl('KSA - Riyadh',   200, [1.50, 1.40, 1.40, 1.30, 1.30, 1.20], 5),
+    ltl('KSA - Jeddah',   250, [1.70, 1.60, 1.60, 1.50, 1.50, 1.40], 6),
+    ltl('Qatar - Doha',   200, [1.50, 1.40, 1.40, 1.30, 1.30, 1.20], 4),
+
+    // ---- CROSS-BORDER · FTL (Full Truck Load) outbound Jebel Ali free zone, AED
+    // equipment: closed box dry 13.6m | reefer 13.6m | closed box dry 15m
+    ftl('BAH',            { 'closed-box-13.6': 6150, 'reefer-13.6': 7350, 'closed-box-15': 6700 }, 4),
+    ftl('DOH',            { 'closed-box-13.6': 4815, 'reefer-13.6': 6015, 'closed-box-15': 5365 }, 4),
+    ftl('KWI',            { 'closed-box-13.6': 6475, 'reefer-13.6': 7675, 'closed-box-15': 7025 }, 5),
+    ftl('DHA via Batha',  { 'closed-box-13.6': 4880, 'reefer-13.6': 6080, 'closed-box-15': 5430 }, 5),
+    ftl('RUH via Batha',  { 'closed-box-13.6': 5260, 'reefer-13.6': 6460, 'closed-box-15': 5810 }, 5),
+    ftl('JED via Batha',  { 'closed-box-13.6': 7210, 'reefer-13.6': 8410, 'closed-box-15': 7760 }, 6),
+    ftl('DHA via Kifa',   { 'closed-box-13.6': 6207, 'reefer-13.6': 7407, 'closed-box-15': 6757 }, 5),
+    ftl('RUH via Kifa',   { 'closed-box-13.6': 6707, 'reefer-13.6': 7907, 'closed-box-15': 7257 }, 5),
+    ftl('JED via Kifa',   { 'closed-box-13.6': 8707, 'reefer-13.6': 9907, 'closed-box-15': 9257 }, 6),
+    ftl('OMAN',           { 'closed-box-13.6': 3065, 'reefer-13.6': 4265 }, 1),
+
+    // ---- LOCAL · intra-UAE per-trip haulage (White Eagle) --------------------
+    ...whiteEagleLanes,
+
+    // ---- AIR / SEA / CUSTOMS · quote-based ----------------------------------
+    quoteLane('air', 'GENERAL', 'Air - any destination'),
+    quoteLane('sea', 'LCL', 'Sea LCL - any destination'),
+    quoteLane('sea', 'FCL', 'Sea FCL - any destination'),
+    quoteLane('customs', 'CLEARANCE', 'Customs clearance'),
   ],
+
   accessorials: [
-    acc('WE_EXTRA_COLLECTION',     'Additional collection point on route',    'land', 'flat',          50,  'AED', 'manual'),
-    acc('WE_WAIT_3T_HR',           'Waiting — 3 Ton (per hr after 1h free)',  'land', 'flat',          50,  'AED', 'manual'),
-    acc('WE_WAIT_7T_HR',           'Waiting — 7/10 Ton (per hr after 1h free)','land','flat',          100, 'AED', 'manual'),
-    acc('WE_WAIT_3T_DAY',          'Waiting — 3 Ton (full day)',              'land', 'flat',          200, 'AED', 'manual'),
-    acc('WE_WAIT_7T_DAY',          'Waiting — 7/10 Ton (full day)',           'land', 'flat',          400, 'AED', 'manual'),
-    acc('WE_CANCEL_3T',            'Trip cancellation — 3 Ton',               'land', 'per_shipment',  150, 'AED', 'manual'),
-    acc('WE_CANCEL_7T',            'Trip cancellation — 7/10 Ton',            'land', 'per_shipment',  250, 'AED', 'manual'),
-    acc('WE_DETENTION_3T',         'Overnight detention — 3 Ton',             'land', 'per_shipment',  250, 'AED', 'manual'),
-    acc('WE_DETENTION_7T',         'Overnight detention — 7/10 Ton',          'land', 'per_shipment',  400, 'AED', 'manual'),
-    acc('WE_CUSTOMS_SEAL',         'Customs-sealed shipment (per truck)',     'land', 'per_container', 100, 'AED', 'manual'),
-    acc('WE_CUSTOMS_INSPECTION',   'Customs inspection (per truck)',          'land', 'per_container', 50,  'AED', 'manual'),
+    // Fuel surcharge (LTL) — also derivable from contract.fscPct, kept explicit here.
+    acc('FSC', 'Fuel surcharge (10%)', 'land', 'percent_of_base', 10, 'AED', 'ltl_only'),
+
+    // Bill of Entry / documentation — origin-dependent, per shipment
+    acc('BOE_JEBELALI_NONDUTY', 'BOE + claim ack. — non-duty-paid ex Jebel Ali', 'any', 'per_shipment', 175, 'AED', 'if_origin_jebelali_nonduty'),
+    acc('BOE_DUTYPAID',         'BOE — duty-paid shipment',                        'any', 'per_shipment', 195, 'AED', 'if_origin_dutypaid'),
+    acc('BOE_SAIF',             'Export declaration — SAIF Zone',                  'any', 'per_shipment', 300, 'AED', 'if_origin_saif'),
+    acc('BOE_DAFZA',            'Export declaration — DAFZA',                      'any', 'per_shipment', 325, 'AED', 'if_origin_dafza'),
+    acc('BOE_OMAN_STATISTICAL', 'Oman statistical BOE / export declaration',       'land', 'per_shipment', 195, 'AED', 'if_dest_oman'),
+
+    // Kuwait (NAS) LTL destination charges — contract states amounts in KWD
+    acc('KUWAIT_DO',  'Kuwait delivery order (NAS)',  'land', 'per_shipment', 7,      'KWD', 'if_dest_kuwait'),
+    acc('KUWAIT_PWC', 'Kuwait PWC charges (NAS)',     'land', 'per_shipment', 18.510, 'KWD', 'if_dest_kuwait'),
+
+    // Pickup / collection uplifts (cross-border LTL)
+    acc('PICKUP_OTHER_EMIRATE', 'LTL pickup ex other emirate / remote area (+AED 0.50/kg)', 'land', 'per_kg', 0.50, 'AED', 'manual'),
+    collection('Sharjah',          '3T', 400), collection('Sharjah',          '10T', 650), collection('Sharjah',          '40FT', 800),
+    collection('Sharjah - Hamriya','3T', 450), collection('Sharjah - Hamriya','10T', 800), collection('Sharjah - Hamriya','40FT', 1000),
+    collection('Ajman',            '3T', 400), collection('Ajman',            '10T', 700), collection('Ajman',            '40FT', 800),
+    collection('UAQ',              '3T', 550), collection('UAQ',              '10T', 800), collection('UAQ',              '40FT', 900),
+    collection('RAK',              '3T', 600), collection('RAK',              '10T', 900), collection('RAK',              '40FT', 1100),
+    collection('Fujairah',         '3T', 600), collection('Fujairah',         '10T', 1000), collection('Fujairah',        '40FT', 1200),
+
+    // Handling
+    acc('DGR', 'Dangerous goods handling', 'any', 'per_shipment', 225, 'AED', 'if_dangerous_goods'),
+    acc('PALLETIZE', 'Palletisation (land, on request)', 'land', 'per_shipment', 0, 'AED', 'if_palletize'),
+
+    // Insurance
+    acc('INSURANCE', 'Cargo insurance (2.5% of C&F value)', 'any', 'percent_of_value', 2.5, 'AED', 'if_insure'),
+
+    // Local (intra-UAE) trip add-ons
+    ...whiteEagleAccessorials,
+
+    // Sea-specific
+    acc('SEA_INSPECTION', 'Container inspection', 'sea', 'per_container', 300, 'AED', 'manual'),
+    acc('SEA_DOCS_DEPOSIT_NR', 'Non-refundable doc service (orig. docs not received)', 'sea', 'per_shipment', 75, 'USD', 'if_sea_docs_not_received'),
+    acc('IMCO_THC', 'IMCO / THC surcharge (DG sea)', 'sea', 'per_container', 0, 'AED', 'manual'),
   ],
 };

@@ -100,6 +100,10 @@ export function convert(amount, from, to, fx) {
 
 // ---- Accessorial applicability predicates -------------------------------------
 // Seed data references these by key in `appliesWhen`.
+// `xborder` = a cross-border move (LTL/FTL), not a local intra-UAE trip; the
+// documentation / BOE / destination charges only apply to cross-border cargo.
+const xborder = (r) => r.mode === 'land' && r.loadType !== 'LOCAL';
+
 const PREDICATES = {
   always: () => true,
   land_only: (r) => r.mode === 'land',
@@ -110,13 +114,13 @@ const PREDICATES = {
   if_insure: (r) => !!r.options?.insure && Number(r.options?.cargoValueAed) > 0,
   if_palletize: (r) => !!r.options?.palletize,
   if_pickup_other_emirate: (r) => !!r.options?.pickupEmirate && r.options.pickupEmirate !== 'Jebel Ali' && r.options.pickupEmirate !== 'Dubai' && r.options.pickupEmirate !== 'Sharjah',
-  if_pickup_collection: (r) => !!r.options?.pickupEmirate && !!r.options?.pickupTruckType,
-  if_dest_oman: (r) => r.mode === 'land' && (r.loadType === 'LTL' || !r.loadType) && /oman|muscat/i.test(r.destination || ''),
-  if_dest_kuwait: (r) => r.mode === 'land' && (r.loadType === 'LTL' || !r.loadType) && /kuwait/i.test(r.destination || ''),
-  if_origin_saif: (r) => /saif/i.test(r.origin || ''),
-  if_origin_dafza: (r) => /dafza/i.test(r.origin || ''),
-  if_origin_dutypaid: (r) => !!r.options?.originDutyPaid,
-  if_origin_jebelali_nonduty: (r) => /jebel\s*ali/i.test(r.origin || '') && !r.options?.originDutyPaid,
+  if_pickup_collection: (r) => xborder(r) && !!r.options?.pickupEmirate && !!r.options?.pickupTruckType,
+  if_dest_oman: (r) => xborder(r) && (r.loadType === 'LTL' || !r.loadType) && /oman|muscat/i.test(r.destination || ''),
+  if_dest_kuwait: (r) => xborder(r) && (r.loadType === 'LTL' || !r.loadType) && /kuwait/i.test(r.destination || ''),
+  if_origin_saif: (r) => xborder(r) && /saif/i.test(r.origin || ''),
+  if_origin_dafza: (r) => xborder(r) && /dafza/i.test(r.origin || ''),
+  if_origin_dutypaid: (r) => xborder(r) && !!r.options?.originDutyPaid,
+  if_origin_jebelali_nonduty: (r) => xborder(r) && /jebel\s*ali/i.test(r.origin || '') && !r.options?.originDutyPaid,
   if_sea_docs_not_received: (r) => r.mode === 'sea' && r.options?.originalDocsReceived === false,
   manual: (r, acc) => Array.isArray(r.selectedAccessorials) && r.selectedAccessorials.includes(acc.code),
 };

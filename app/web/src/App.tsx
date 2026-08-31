@@ -6,7 +6,6 @@ import {
   getContracts,
   type Company,
   type Contract,
-  type ContractSummary,
 } from './api';
 import { useToast } from './components/Toast';
 import { QuoteView } from './views/QuoteView';
@@ -16,7 +15,6 @@ import { TariffView } from './views/TariffView';
 
 export function App() {
   const toast = useToast();
-  const [contracts, setContracts] = useState<ContractSummary[]>([]);
   const [contractId, setContractId] = useState<number | null>(null);
   const [contract, setContract] = useState<Contract | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
@@ -44,7 +42,6 @@ export function App() {
     loadCompany();
     getContracts()
       .then((list) => {
-        setContracts(list);
         if (list[0]) setContractId(list[0].id);
       })
       .catch((err) => toast('Startup error: ' + (err as Error).message, true));
@@ -114,11 +111,9 @@ export function App() {
             path="/quote"
             element={
               <QuoteView
-                contracts={contracts}
                 contractId={contractId}
                 contract={contract}
                 company={company}
-                onContractChange={setContractId}
               />
             }
           />
