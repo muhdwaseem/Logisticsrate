@@ -10,6 +10,21 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<':
 
 const state = { contract: null, lastResult: null, lastRequest: null };
 
+// ---------- toast ----------
+let toastTimer = null;
+function toast(text, isError = false) {
+  const el = $('toast');
+  el.textContent = text;
+  el.classList.toggle('err', isError);
+  el.hidden = false;
+  requestAnimationFrame(() => el.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => { el.hidden = true; }, 220);
+  }, isError ? 5000 : 3000);
+}
+
 // ---------- tabs ----------
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
@@ -20,7 +35,7 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
   if (t.dataset.view === 'rates') renderRates();
 }));
 
-// ---------- LOAD DI ----------
+// ---------- LOAD TYPES ----------
 const LOAD_TYPES = {
   land: [['LTL', 'LTL — less than truck load'], ['FTL', 'FTL — full truck load']],
   air: [['GENERAL', 'General cargo']],
@@ -42,7 +57,7 @@ async function loadContract(id) {
   state.contract = await api('/api/contracts/' + id);
   const d = state.contract.data?.contract || {};
   $('contractLabel').textContent =
-    [state.contract.name, d.currency, d.territory].filter(Boolean).join(' · ');
+    [state.contract.name, d.currency, d.territory].filter(Boolean).join('  ·  ');
   $('ratesContractName').textContent = '— ' + state.contract.name;
   syncLoadTypes();
 }
@@ -75,13 +90,13 @@ function syncLaneUi() {
   }
   $('buyRateWrap').hidden = !isQuoteBased;
 
-  // manual accessorials available on this contract for this mode
+  // manual accessorials available on this tariff for this mode
   const mode = $('mode').value;
   const accs = (state.contract?.data?.accessorials || []).filter(a =>
     (a.appliesWhen === 'manual') && (!a.mode || a.mode === 'any' || a.mode === mode));
   $('accessorialPicks').innerHTML = accs.length
-    ? '<strong style="width:100%">Optional charges</strong>' + accs.map(a =>
-        `<label><input type="checkbox" name="acc" value="${esc(a.code)}" /> ${esc(a.label)}` +
+    ? '<strong>Optional charges</strong>' + accs.map(a =>
+        `<label class="check"><input type="checkbox" name="acc" value="${esc(a.code)}" /> ${esc(a.label)}` +
         `${a.rate ? ` <span class="muted">(${a.currency} ${a.rate})</span>` : ''}</label>`).join('')
     : '';
 }
@@ -154,11 +169,17 @@ function renderResult(r) {
   $('resultBody').hidden = false;
   const ccy = r.quoteCurrency;
   const cw = r.chargeable || {};
-  $('chargeableLine').textContent =
-    r.chargeableKg != null
-      ? `Chargeable: ${r.chargeableKg} ${$('mode').value === 'sea' ? 'RT' : 'kg'} · ${cw.basis || ''}` +
-        (cw.volumeCbm ? ` · ${cw.volumeCbm} CBM` : '') + ` · lane ${r.meta?.laneMatched ? 'matched' : 'NOT matched'}`
-      : '';
+
+  const chips = [];
+  if (r.chargeableKg != null) {
+    chips.push(`<span class="chip">Chargeable ${esc(r.chargeableKg)} ${$('mode').value === 'sea' ? 'RT' : 'kg'}</span>`);
+    if (cw.basis) chips.push(`<span class="chip">${esc(cw.basis)}</span>`);
+    if (cw.volumeCbm) chips.push(`<span class="chip">${esc(cw.volumeCbm)} CBM</span>`);
+    chips.push(r.meta?.laneMatched
+      ? `<span class="chip oklike">lane matched</span>`
+      : `<span class="chip warnlike">lane not matched</span>`);
+  }
+  $('chargeableLine').innerHTML = chips.join('');
 
   $('breakdownBody').innerHTML = (r.lines || []).map(l => `
     <tr>
@@ -217,6 +238,7 @@ function wire() {
     const pieces = e.target.value === 'pieces';
     $('piecesBox').hidden = !pieces;
     $('summaryBox').hidden = pieces;
+    schedulePrice();
   }));
 
   // re-price on any change to the shipment form
@@ -238,9 +260,10 @@ function wire() {
       const si = $('savedInfo');
       si.hidden = false;
       si.innerHTML = `Saved as <strong>${esc(out.ref)}</strong> — ` +
-        `<a href="/api/quotes/${out.ref}/print" target="_blank">open printable quote →</a>`;
+        `<a href="/api/quotes/${out.ref}/print" target="_blank" rel="noopener">open printable quote →</a>`;
       $('saveBtn').disabled = true;
-    } catch (err) { alert('Save failed: ' + err.message); }
+      toast('Quote ' + out.ref + ' saved');
+    } catch (err) { toast('Save failed: ' + err.message, true); }
   });
 
   $('saveRates').addEventListener('click', async () => {
@@ -251,6 +274,7 @@ function wire() {
       $('rateSaveMsg').textContent = 'Saved. Pricing updated.';
       renderRates();
       schedulePrice();
+      toast('Tariff saved');
     } catch (err) { $('rateSaveMsg').textContent = 'Error: ' + err.message; }
   });
 
@@ -262,7 +286,7 @@ async function loadQuotes() {
   const rows = await api('/api/quotes');
   $('quotesBody').innerHTML = rows.map(q => `
     <tr>
-      <td><a href="/api/quotes/${q.ref}/print" target="_blank">${esc(q.ref)}</a></td>
+      <td><a href="/api/quotes/${q.ref}/print" target="_blank" rel="noopener">${esc(q.ref)}</a></td>
       <td>${esc(q.customer || '—')}</td>
       <td>${esc(q.origin || '')} → ${esc(q.destination || '')}</td>
       <td>${esc(q.mode)} ${esc(q.load_type || '')}</td>
@@ -273,14 +297,14 @@ async function loadQuotes() {
           ${['draft', 'sent', 'won', 'lost'].map(s => `<option ${s === q.status ? 'selected' : ''}>${s}</option>`).join('')}
         </select>
       </td>
-    </tr>`).join('') || '<tr><td colspan="7" class="muted">No quotes yet.</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="7">No quotes saved yet.</td></tr>';
   document.querySelectorAll('.statusSel').forEach(sel => sel.addEventListener('change', async e => {
     await api('/api/quotes/' + e.target.dataset.ref, { method: 'PATCH', body: JSON.stringify({ status: e.target.value }) });
     loadQuotes();
   }));
 }
 
-// ---------- rate cards ----------
+// ---------- tariffs ----------
 function renderRates() {
   const d = state.contract?.data;
   if (!d) return;
@@ -313,4 +337,4 @@ function renderRates() {
   $('ratesSummary').innerHTML = html;
 }
 
-boot().catch(err => alert('Startup error: ' + err.message));
+boot().catch(err => toast('Startup error: ' + err.message, true));

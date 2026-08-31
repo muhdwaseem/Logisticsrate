@@ -11,7 +11,7 @@ The **rates card** is the priceable content. Everything below is encoded in
 
 ## 1. Chargeable quantity rules
 
-| Mode | Rule (from contract) |
+| Mode | Rule |
 |---|---|
 | **Air** | Higher of gross weight or volumetric = `L×W×H (cm) / 6000`. |
 | **Land** | Higher of gross or volumetric = `L×W×H (cm) / 4000`, **or** `1 CBM = 250 kg`. Minimum chargeable 100 kg. |
@@ -34,7 +34,7 @@ min charge (≤100 kg) · 101–500 · 501–1000 · 1001–2000 · 2001–3000 
 | KSA – Jeddah | 250 | 1.70 | 1.60 | 1.60 | 1.50 | 1.50 | 1.40 |
 | Qatar – Doha | 200 | 1.50 | 1.40 | 1.40 | 1.30 | 1.30 | 1.20 |
 
-Procedure (contract): select destination → chargeable weight (gross vs
+Procedure: select destination → chargeable weight (gross vs
 volumetric) → multiply per-kg rate → add documentation (BOE) at origin.
 `10% FSC` applies on these rates. Insurance 2.5% of C&F value (optional).
 5 free warehouse days at destination.
@@ -102,8 +102,7 @@ surcharges + VAT are applied automatically.
 
 ## 6. Tax
 
-UAE **VAT 5%** on the quotation subtotal (contract clause 6 — Tax Obligations).
-Toggle per quote.
+UAE **VAT 5%** on the quotation subtotal. Toggle per quote.
 
 ---
 
@@ -114,7 +113,7 @@ Toggle per quote.
   "mode": "land",                    // land | air | sea | customs
   "loadType": "LTL",                 // LTL | FTL | LCL | FCL | GENERAL | CLEARANCE
   "origin": "Jebel Ali",
-  "destination": "KSA - Riyadh",     // must match a lane on the contract
+  "destination": "KSA - Riyadh",     // must match a lane in the tariff
   "equipment": "closed-box-13.6",    // FTL / FCL only
   "containers": 1,                   // FTL / FCL
   "pieces": [                        // OR grossWeightKg + volumeCbm

@@ -18,7 +18,7 @@ domain logic in `rate-engine.mjs`.
 - [x] Printable quotation document.
 
 **Outcome:** anyone can run `node server.mjs` and produce a correct, itemised
-quote from the contract.
+quote from the seeded tariff.
 
 ---
 
@@ -95,7 +95,7 @@ The bottleneck for an SME is *getting rates in and keeping them current*.
 | Concern | Approach |
 |---|---|
 | Money | `decimal.js` / Postgres `numeric`. Round only at line level, documented rounding mode. |
-| Correctness | Rate engine stays pure; every contract clause → a named test. Golden-file tests per real contract. |
+| Correctness | Rate engine stays pure; every tariff rule → a named test. Golden-file tests per onboarded tariff. |
 | Rate integrity | `valid_from/valid_to`, no destructive edits, immutable sent quotes. |
 | Auditability | `created_by`, `superseded_by`, event log on rates and quotes. |
 | Config not code | Lanes, breaks, surcharges, FX, VAT, incoterms = data. |

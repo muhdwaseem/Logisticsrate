@@ -12,7 +12,7 @@
  */
 
 export const DIM_FACTOR = { air: 6000, land: 4000 }; // cm³ per kg
-export const CBM_TO_KG_LAND = 250;                   // 1 CBM = 250 kg (contract, land)
+export const CBM_TO_KG_LAND = 250;                   // 1 CBM = 250 kg (land)
 
 /** Default FX to AED. Override per-contract via contractData.fx. */
 export const DEFAULT_FX_TO_AED = { AED: 1, USD: 3.6725, KWD: 12.0 };
