@@ -111,6 +111,8 @@ const PREDICATES = {
   if_palletize: (r) => !!r.options?.palletize,
   if_pickup_other_emirate: (r) => !!r.options?.pickupEmirate && r.options.pickupEmirate !== 'Jebel Ali' && r.options.pickupEmirate !== 'Dubai' && r.options.pickupEmirate !== 'Sharjah',
   if_pickup_collection: (r) => !!r.options?.pickupEmirate && !!r.options?.pickupTruckType,
+  if_dest_oman: (r) => r.mode === 'land' && (r.loadType === 'LTL' || !r.loadType) && /oman|muscat/i.test(r.destination || ''),
+  if_dest_kuwait: (r) => r.mode === 'land' && (r.loadType === 'LTL' || !r.loadType) && /kuwait/i.test(r.destination || ''),
   if_origin_saif: (r) => /saif/i.test(r.origin || ''),
   if_origin_dafza: (r) => /dafza/i.test(r.origin || ''),
   if_origin_dutypaid: (r) => !!r.options?.originDutyPaid,
@@ -299,6 +301,7 @@ export function computeQuote(request, contractData, company = null) {
     warnings,
     meta: {
       contract: contract.name || null,
+      transitDays: lane?.transitDays ?? null,
       incoterm: request.incoterm || contract.incoterm || company?.default_incoterm || 'EXW',
       validUntil: addDays(
         new Date(),

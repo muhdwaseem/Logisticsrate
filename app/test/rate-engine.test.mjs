@@ -131,6 +131,40 @@ test('Collection charge — auto-applies for the chosen pickup zone + truck', ()
   assert.equal(withPickup.lines.filter(l => l.code.startsWith('COLLECTION_')).length, 1);
 });
 
+test('Oman LTL — statistical BOE AED 195 auto-applies at destination', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'LTL', destination: 'Muscat - Oman', origin: 'Jebel Ali',
+    grossWeightKg: 800, options: { applyVat: false },
+  }, DATA);
+  assert.equal(q.lines.find(l => l.code === 'BOE_OMAN_STATISTICAL').amount, 195);
+  // not on a Bahrain lane
+  const bah = computeQuote({
+    mode: 'land', loadType: 'LTL', destination: 'Bahrain', origin: 'Jebel Ali',
+    grossWeightKg: 800, options: { applyVat: false },
+  }, DATA);
+  assert.equal(bah.lines.some(l => l.code === 'BOE_OMAN_STATISTICAL'), false);
+});
+
+test('Kuwait LTL — DO + PWC (KWD) auto-apply, converted to AED', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'LTL', destination: 'Kuwait', origin: 'Jebel Ali',
+    grossWeightKg: 800, options: { applyVat: false },
+  }, DATA);
+  const doLine = q.lines.find(l => l.code === 'KUWAIT_DO');
+  const pwc = q.lines.find(l => l.code === 'KUWAIT_PWC');
+  assert.equal(doLine.currency, 'KWD');
+  assert.equal(doLine.amount, round2(7 * 12.0));        // KWD 7 -> AED
+  assert.equal(pwc.amount, round2(18.510 * 12.0));       // KWD 18.510 -> AED
+});
+
+test('Transit days from the service schedule are exposed on the result', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'LTL', destination: 'KSA - Jeddah', origin: 'Jebel Ali',
+    grossWeightKg: 500, options: { applyVat: false },
+  }, DATA);
+  assert.equal(q.meta.transitDays, 6);
+});
+
 test('Currency conversion — USD accessorial shown in AED quote', () => {
   const q = computeQuote({
     mode: 'sea', loadType: 'LCL', destination: 'Sea LCL - any destination',

@@ -41,6 +41,9 @@ export function renderQuoteHtml(q, contract, company = null) {
     ['Destination', esc(req.destination || '—')],
     ['Incoterm', esc(r.meta?.incoterm || co.default_incoterm || 'EXW')],
     ['Chargeable', `${esc(r.chargeableKg)} ${req.mode === 'sea' ? 'RT' : 'kg'} (${esc(r.chargeable?.basis || '')})`],
+    ...(r.meta?.transitDays != null
+      ? [['Transit', `${esc(r.meta.transitDays)} day${r.meta.transitDays === 1 ? '' : 's'} (indicative)`]]
+      : []),
   ].map(([k, v]) => `<div><span>${k}</span><span>${v}</span></div>`).join('');
 
   const logoHtml = co.logo
