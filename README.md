@@ -31,19 +31,25 @@ SoftwareforlogisticsSME/
 
 ## Run it
 
-Requires **Node.js ≥ 22.5** (uses the built-in `node:sqlite`). The server itself
-has **no runtime dependencies**; the frontend (`app/web`) is a Vite + React + TS
-app that builds into `app/public`.
+Requires **Node.js ≥ 22.5** (uses the built-in `node:sqlite`). The server has
+**no runtime dependencies** and the built UI (`app/public`) is committed, so a
+fresh clone runs with nothing to install:
 
 ```bash
 cd app
-npm run build        # installs app/web deps and builds the UI into app/public
 node server.mjs
 # open http://localhost:4700
 ```
 
-Working on the UI? Run the two dev servers side by side — Vite proxies `/api` to
-the Node server, so edits hot-reload:
+**Changed anything under `app/web/src`?** Rebuild `app/public` and commit it —
+`node server.mjs` serves the committed build, not your source:
+
+```bash
+cd app && npm run build      # installs app/web deps, rebuilds app/public
+```
+
+Working on the UI? Skip the rebuild loop and run the Vite dev server, which
+proxies `/api` to the Node server and hot-reloads on save:
 
 ```bash
 cd app && node server.mjs      # terminal 1 — API on :4700

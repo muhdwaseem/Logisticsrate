@@ -1,0 +1,2 @@
+# Keep the committed Vite build byte-stable across platforms (no CRLF rewrite).
+app/public/** text eol=lf
