@@ -1,0 +1,25 @@
+{
+  "name": "freight-rate-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "React + Vite + TS frontend for the Freight Rate & Quotation System. Builds into ../public, which server.mjs serves.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.1.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0"
+  }
+}

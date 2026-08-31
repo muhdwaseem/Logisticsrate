@@ -1,6 +1,7 @@
 # Generalization plan — from one UAE tariff to a product any logistics company can run
 
-**Status:** planning only, no code written yet. Scope chosen: *"Just plan it"*.
+**Status:** Phase A (Company Profile & branded quote) is **built** — see
+`docs/PHASE-A-COMPANY-PROFILE.md` and §9 below. Phases B–D remain planning only.
 
 The redesigned app (branch `worktree-whitelabel-ui`) is already **white-label**
 (no source carrier, customer, or signed agreement anywhere) and the rate engine
@@ -331,16 +332,20 @@ starter tariffs produces a correctly-branded, correctly-taxed quote + printable.
 Sizes: **S** ≈ ≤2 h, **M** ≈ half-day, **L** ≈ 1–2 days. Solo, on the current
 zero-dependency stack.
 
-### Phase A — Company Profile (non-breaking)  · ~1 day
-| Item | Size |
-|---|---|
-| `company` table + `getCompany`/`updateCompany` + migration/defaults row (§3, §7) | M |
-| `GET`/`PUT /api/company` (§3) | S |
-| Settings screen bound to it, incl. FX-table editor (§5.3) | M |
-| Top-bar logo + display name (§5.2, H12) | S |
-| Quote letterhead: logo, from-block, tax_id, bank details, footer notes (§5.5, H11) | M |
-| Configurable tax label + `tax_mode:"none"` through engine result, UI ledger, quote doc (§4.4, H3) | M |
-| Quote-ref prefix/pad from profile (§3, H13) | S |
+### Phase A — Company Profile (non-breaking)  · ~1 day  ✅ DONE
+
+Built per `docs/PHASE-A-COMPANY-PROFILE.md`. Commit on branch
+`worktree-whitelabel-ui`. All items shipped; 40 tests green (11 new).
+
+| Item | Size | Status |
+|---|---|---|
+| `company` table + `getCompany`/`updateCompany` + migration/defaults row (§3, §7) | M | ✅ |
+| `GET`/`PUT /api/company` (§3) | S | ✅ |
+| Settings screen bound to it, incl. FX-table editor (§5.3) | M | ✅ `web/src/views/SettingsView.tsx` |
+| Top-bar logo + display name (§5.2, H12) | S | ✅ |
+| Quote letterhead: logo, from-block, tax_id, bank details, footer notes (§5.5, H11) | M | ✅ |
+| Configurable tax label + `tax_mode:"none"` through engine result, UI ledger, quote doc (§4.4, H3) | M | ✅ `result.tax {label,pct,amount,mode}`, `vat`/`vatPct` kept as aliases |
+| Quote-ref prefix/pad from profile (§3, H13) | S | ✅ |
 
 ### Phase B — De-region the quote form (mostly non-breaking)  · ~half day
 | Item | Size |

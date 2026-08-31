@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
-import { rmSync } from 'node:fs';
+import { rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 
@@ -189,10 +189,87 @@ test('PUT /api/contracts/1/data — round-trips an edit', async () => {
   assert.equal(r.status, 200);
 });
 
-test('static — index.html served, shows no provenance', async () => {
+test('static — index.html served, shows no provenance', async (t) => {
+  // app/public is the Vite build output; skip if the UI hasn't been built.
+  if (!existsSync(join(__dirname, '..', 'public', 'index.html'))) {
+    t.skip('run `npm run build` first to exercise the static host');
+    return;
+  }
   const r = await fetch(`${BASE}/`);
   const html = await r.text();
   assert.equal(r.status, 200);
   assert.doesNotMatch(html, FORBIDDEN);
   assert.doesNotMatch(html, /Rate agreement/i);
+});
+
+// ---- Phase A: Company Profile -------------------------------------------
+// These run last: they mutate the company row (prefix, tax) and leave it changed.
+
+const putCompany = (patch) => fetch(`${BASE}/api/company`, {
+  method: 'PUT',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify(patch),
+});
+
+const priceAndSave = (customer = 'Phase A Co') => fetch(`${BASE}/api/quotes`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    contractId: 1,
+    customer,
+    request: {
+      mode: 'land', loadType: 'LTL', origin: 'Jebel Ali', destination: 'KSA - Riyadh',
+      grossWeightKg: 1500, options: { applyVat: true },
+    },
+  }),
+}).then(r => r.json());
+
+test('GET /api/company — a profile row exists', async () => {
+  const r = await fetch(`${BASE}/api/company`);
+  const b = await r.json();
+  assert.equal(r.status, 200);
+  assert.equal(typeof b.base_currency, 'string');
+  assert.equal(typeof b.tax_label, 'string');
+  assert.deepEqual(typeof b.fx_rates, 'object');
+});
+
+test('PUT /api/company — round-trips display name + FX table', async () => {
+  const r = await putCompany({ display_name: 'Meridian Freight', fx_rates: { USD: 3.67, EUR: 3.95 } });
+  const b = await r.json();
+  assert.equal(r.status, 200);
+  assert.equal(b.display_name, 'Meridian Freight');
+  assert.equal(b.fx_rates.EUR, 3.95);
+});
+
+test('PUT /api/company — rejects a bad base_currency', async () => {
+  const r = await putCompany({ base_currency: 'dollars' });
+  assert.equal(r.status, 400);
+});
+
+test('Quote ref honours company.quote_prefix', async () => {
+  await putCompany({ quote_prefix: 'ACME-', quote_pad: 4 });
+  const b = await priceAndSave();
+  assert.match(b.ref, /^ACME-\d{4}-\d{4}$/);
+});
+
+test('Printable quote shows the company letterhead and tax label', async () => {
+  // tax_label comes from the company; the rate still comes from the tariff
+  // (sample tariff = 5%), demonstrating the request→tariff→company order.
+  await putCompany({ legal_name: 'ACME Logistics LLC', tax_label: 'GST', tax_rate_pct: 9, tax_mode: 'exclusive' });
+  const saved = await priceAndSave();
+  const html = await (await fetch(`${BASE}/api/quotes/${saved.ref}/print`)).text();
+  assert.match(html, /ACME Logistics LLC/);
+  assert.match(html, /GST \(5%\)/);
+  assert.match(html, /Freight Quotation/);
+  assert.doesNotMatch(html, FORBIDDEN);
+});
+
+test('tax_mode "none" removes the tax row from the printable quote', async () => {
+  await putCompany({ tax_mode: 'none' });
+  const saved = await priceAndSave();
+  const html = await (await fetch(`${BASE}/api/quotes/${saved.ref}/print`)).text();
+  assert.doesNotMatch(html, /GST \(/);
+  assert.doesNotMatch(html, /VAT \(/);
+  assert.match(html, /Subtotal/);
+  assert.match(html, /Total/);
 });

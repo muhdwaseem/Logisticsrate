@@ -13,6 +13,7 @@ import { computeQuote } from './src/rate-engine.mjs';
 import {
   listCarriers, listContracts, getContract, updateContractData, createContract,
   nextQuoteRef, saveQuote, getQuote, listQuotes, setQuoteStatus,
+  getCompany, updateCompany,
 } from './src/db.mjs';
 import { renderQuoteHtml } from './src/quote-doc.mjs';
 
@@ -54,6 +55,15 @@ async function serveStatic(req, res) {
     res.writeHead(200, { 'content-type': MIME[extname(full)] || 'application/octet-stream' });
     res.end(data);
   } catch {
+    // SPA fallback: an extension-less path (e.g. /saved, /tariffs) is a
+    // client-side route — hand back index.html so the app can render it.
+    if (!extname(full)) {
+      try {
+        const html = await readFile(join(PUBLIC, 'index.html'));
+        res.writeHead(200, { 'content-type': MIME['.html'] });
+        return res.end(html);
+      } catch { /* fall through to 404 */ }
+    }
     json(res, 404, { error: 'not found' });
   }
 }
@@ -66,6 +76,24 @@ route('GET', /^\/api\/health$/, (_m, _req, res) =>
   json(res, 200, { ok: true, service: 'freight-rate-system', time: new Date().toISOString() }));
 
 route('GET', /^\/api\/carriers$/, (_m, _req, res) => json(res, 200, listCarriers()));
+
+// ---- company profile --------------------------------------------------------
+route('GET', /^\/api\/company$/, (_m, _req, res) => json(res, 200, getCompany()));
+
+route('PUT', /^\/api\/company$/, async (_m, req, res) => {
+  const body = await readBody(req);
+  if (body.base_currency != null && !/^[A-Za-z]{3}$/.test(String(body.base_currency)))
+    throw new HttpError(400, 'base_currency must be a 3-letter ISO code');
+  if (body.tax_mode != null && !['exclusive', 'none'].includes(body.tax_mode))
+    throw new HttpError(400, 'tax_mode must be "exclusive" or "none"');
+  if (body.logo != null && body.logo !== '') {
+    if (!/^data:/.test(String(body.logo))) throw new HttpError(400, 'logo must be a data: URI');
+    if (Buffer.byteLength(String(body.logo)) > 64 * 1024) throw new HttpError(400, 'logo exceeds 64 KB');
+  }
+  if (body.quote_pad != null && !(body.quote_pad >= 1 && body.quote_pad <= 8))
+    throw new HttpError(400, 'quote_pad must be 1–8');
+  json(res, 200, updateCompany(body));
+});
 
 route('GET', /^\/api\/contracts$/, (_m, _req, res) => json(res, 200, listContracts()));
 
@@ -94,7 +122,7 @@ route('POST', /^\/api\/quote$/, async (_m, req, res) => {
   const { contractId, request } = await readBody(req);
   const c = getContract(Number(contractId));
   if (!c) throw new HttpError(400, 'unknown contractId');
-  json(res, 200, computeQuote(request || {}, c.data));
+  json(res, 200, computeQuote(request || {}, c.data, getCompany()));
 });
 
 // price and save
@@ -102,8 +130,9 @@ route('POST', /^\/api\/quotes$/, async (_m, req, res) => {
   const { contractId, customer, request } = await readBody(req);
   const c = getContract(Number(contractId));
   if (!c) throw new HttpError(400, 'unknown contractId');
-  const result = computeQuote(request || {}, c.data);
-  const ref = nextQuoteRef();
+  const company = getCompany();
+  const result = computeQuote(request || {}, c.data, company);
+  const ref = nextQuoteRef({ prefix: company?.quote_prefix, pad: company?.quote_pad });
   const saved = saveQuote({ ref, contractId: c.id, customer, request: request || {}, result });
   json(res, 201, { ref, result, quote: saved });
 });
@@ -126,7 +155,7 @@ route('GET', /^\/api\/quotes\/([A-Za-z0-9-]+)\/print$/, (m, _req, res) => {
   const q = getQuote(m[1]);
   if (!q) return json(res, 404, { error: 'quote not found' });
   const contract = q.contract_id ? getContract(q.contract_id) : null;
-  const html = renderQuoteHtml(q, contract);
+  const html = renderQuoteHtml(q, contract, getCompany());
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
   res.end(html);
 });

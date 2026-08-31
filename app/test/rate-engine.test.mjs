@@ -148,3 +148,56 @@ test('white-label — sample tariff carries no source-contract provenance', () =
   assert.equal(defaultTariff.contract.customer, null);
   assert.equal(defaultTariff.carrier.email, null);
 });
+
+// ---- Phase A: Company Profile & configurable tax --------------------------
+
+const REQ_RIYADH = {
+  mode: 'land', loadType: 'LTL', origin: 'Jebel Ali', destination: 'KSA - Riyadh',
+  grossWeightKg: 1500, options: { applyVat: true },
+};
+
+test('Phase A — no company arg is byte-identical to before', () => {
+  const a = computeQuote(REQ_RIYADH, DATA);
+  const b = computeQuote(REQ_RIYADH, DATA, null);
+  assert.deepEqual(a, b);
+  assert.equal(a.vat, round2(2485 * 0.05));
+  assert.equal(a.tax.amount, a.vat);
+  assert.equal(a.tax.pct, a.vatPct);
+  assert.equal(a.tax.label, 'VAT');
+});
+
+test('Phase A — company.tax_mode "none" zeroes the tax line', () => {
+  const q = computeQuote(REQ_RIYADH, DATA, { tax_mode: 'none', tax_rate_pct: 5 });
+  assert.equal(q.tax.pct, 0);
+  assert.equal(q.tax.amount, 0);
+  assert.equal(q.tax.mode, 'none');
+  assert.equal(q.total, q.subtotal);
+  assert.equal(q.vat, 0); // alias
+});
+
+test('Phase A — company tax label/rate used when the tariff has none', () => {
+  const noTaxTariff = {
+    ...DATA,
+    contract: { ...DATA.contract, vatPct: undefined },
+  };
+  const q = computeQuote(REQ_RIYADH, noTaxTariff, {
+    tax_label: 'GST', tax_rate_pct: 9, tax_mode: 'exclusive',
+  });
+  assert.equal(q.tax.label, 'GST');
+  assert.equal(q.tax.pct, 9);
+  assert.equal(q.tax.amount, round2(q.subtotal * 0.09));
+});
+
+test('Phase A — tariff vatPct wins over company.tax_rate_pct', () => {
+  const q = computeQuote(REQ_RIYADH, DATA, { tax_rate_pct: 20 });
+  assert.equal(q.tax.pct, 5); // from defaultTariff.contract.vatPct
+});
+
+test('Phase A — company supplies incoterm & validity fallbacks', () => {
+  const bare = { ...DATA, contract: { ...DATA.contract, incoterm: undefined, validityDays: undefined } };
+  const q = computeQuote(REQ_RIYADH, bare, {
+    default_incoterm: 'DAP', default_validity_days: 30, quote_footer_notes: ['ex works note'],
+  });
+  assert.equal(q.meta.incoterm, 'DAP');
+  assert.equal(q.meta.footerNotes[0], 'ex works note');
+});

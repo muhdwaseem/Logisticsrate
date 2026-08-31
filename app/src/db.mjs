@@ -60,7 +60,40 @@ CREATE TABLE IF NOT EXISTS quotes (
   request_json   TEXT NOT NULL,
   result_json    TEXT NOT NULL
 );
+
+-- Single-row company profile (id is always 1). Drives branding, tax wording,
+-- quote numbering and currency defaults. See docs/PHASE-A-COMPANY-PROFILE.md.
+CREATE TABLE IF NOT EXISTS company (
+  id                      INTEGER PRIMARY KEY CHECK (id = 1),
+  legal_name              TEXT,
+  display_name            TEXT,
+  logo                    TEXT,                  -- data URI, PNG/SVG, <= 64 KB
+  address                 TEXT,
+  city                    TEXT,
+  country                 TEXT,
+  tax_id                  TEXT,                  -- VRN / GST No. / EIN / VAT ID
+  email                   TEXT,
+  phone                   TEXT,
+  website                 TEXT,
+  base_currency           TEXT DEFAULT 'AED',
+  fx_rates_json           TEXT DEFAULT '{}',     -- { CUR: units_per_1_base }
+  tax_label               TEXT DEFAULT 'VAT',
+  tax_rate_pct            REAL DEFAULT 0,
+  tax_mode                TEXT DEFAULT 'exclusive',  -- exclusive | none
+  default_incoterm        TEXT DEFAULT 'EXW',
+  default_validity_days   INTEGER DEFAULT 14,
+  quote_prefix            TEXT DEFAULT 'Q',      -- carries its own separator, e.g. 'ACME-'
+  quote_pad               INTEGER DEFAULT 4,
+  quote_footer_notes_json TEXT DEFAULT '[]',    -- string[]
+  bank_details            TEXT,
+  setup_complete          INTEGER NOT NULL DEFAULT 0,
+  updated_at              TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `);
+
+function safeParse(s, fallback) {
+  try { return JSON.parse(s); } catch { return fallback; }
+}
 
 // ---- seed ------------------------------------------------------------------
 // A database from an earlier build keeps whatever it was first seeded with;
@@ -82,6 +115,30 @@ function seedIfEmpty() {
   console.log('[db] seeded sample tariff');
 }
 seedIfEmpty();
+
+// Ensure the single company row exists. On a database that already has a
+// tariff we don't nag for setup — we pre-fill currency/tax from that tariff
+// and mark setup complete so the app is immediately usable.
+function ensureCompanyRow() {
+  const { count } = db.prepare('SELECT COUNT(*) AS count FROM company').get();
+  if (count > 0) return;
+  const anyContract = db.prepare('SELECT currency, data_json FROM contracts ORDER BY id LIMIT 1').get();
+  let baseCurrency = 'AED';
+  let taxLabel = 'VAT';
+  let taxRatePct = 0;
+  if (anyContract) {
+    baseCurrency = anyContract.currency || 'AED';
+    const c = safeParse(anyContract.data_json, {})?.contract || {};
+    if (c.currency) baseCurrency = c.currency;
+    if (c.vatPct != null) taxRatePct = Number(c.vatPct) || 0;
+  }
+  db.prepare(`
+    INSERT INTO company (id, base_currency, tax_label, tax_rate_pct, tax_mode, setup_complete)
+    VALUES (1, ?, ?, ?, 'exclusive', ?)
+  `).run(baseCurrency, taxLabel, taxRatePct, anyContract ? 1 : 0);
+  console.log('[db] created company profile row');
+}
+ensureCompanyRow();
 
 // ---- queries -------------------------------------------------------------
 export function listCarriers() {
@@ -123,12 +180,53 @@ export function createContract({ carrierName, name, customer, currency = 'AED', 
   return getContract(id);
 }
 
-export function nextQuoteRef() {
+export function nextQuoteRef({ prefix = 'Q', pad = 4 } = {}) {
   const yr = new Date().getFullYear();
   const { n } = db.prepare(
     "SELECT COUNT(*) + 1 AS n FROM quotes WHERE ref LIKE ?"
-  ).get(`Q${yr}-%`);
-  return `Q${yr}-${String(n).padStart(4, '0')}`;
+  ).get(`${prefix}${yr}-%`);
+  return `${prefix}${yr}-${String(n).padStart(pad, '0')}`;
+}
+
+// ---- company profile --------------------------------------------------------
+export function getCompany() {
+  const row = db.prepare('SELECT * FROM company WHERE id = 1').get();
+  if (!row) return null;
+  const { fx_rates_json, quote_footer_notes_json, ...rest } = row;
+  return {
+    ...rest,
+    fx_rates: safeParse(fx_rates_json, {}),
+    quote_footer_notes: safeParse(quote_footer_notes_json, []),
+    setup_complete: !!row.setup_complete,
+  };
+}
+
+const COMPANY_COLUMNS = [
+  'legal_name', 'display_name', 'logo', 'address', 'city', 'country', 'tax_id',
+  'email', 'phone', 'website', 'base_currency', 'tax_label', 'tax_rate_pct',
+  'tax_mode', 'default_incoterm', 'default_validity_days', 'quote_prefix',
+  'quote_pad', 'bank_details', 'setup_complete',
+];
+
+export function updateCompany(patch = {}) {
+  const sets = [];
+  const vals = [];
+  for (const col of COMPANY_COLUMNS) {
+    if (patch[col] === undefined) continue;
+    sets.push(`${col} = ?`);
+    vals.push(typeof patch[col] === 'boolean' ? (patch[col] ? 1 : 0) : patch[col]);
+  }
+  if (patch.fx_rates !== undefined) {
+    sets.push('fx_rates_json = ?');
+    vals.push(JSON.stringify(patch.fx_rates ?? {}));
+  }
+  if (patch.quote_footer_notes !== undefined) {
+    sets.push('quote_footer_notes_json = ?');
+    vals.push(JSON.stringify(patch.quote_footer_notes ?? []));
+  }
+  sets.push("updated_at = datetime('now')");
+  db.prepare(`UPDATE company SET ${sets.join(', ')} WHERE id = 1`).run(...vals);
+  return getCompany();
 }
 
 export function saveQuote({ ref, contractId, customer, request, result }) {
