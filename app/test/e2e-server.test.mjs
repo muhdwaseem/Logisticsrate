@@ -90,7 +90,7 @@ test('POST /api/quote — local (intra-UAE) trip prices per truck', async () => 
       contractId: 1,
       request: {
         mode: 'land', loadType: 'LOCAL', origin: 'Jebel Ali', destination: 'Dubai',
-        equipment: '3T', containers: 1, options: { applyVat: true },
+        equipment: '3-ton', containers: 1, options: { applyVat: true },
       },
     }),
   });
