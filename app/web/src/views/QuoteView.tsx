@@ -33,9 +33,18 @@ const LOAD_TYPES: Record<string, [string, string][]> = {
 };
 
 // The forwarder quotes ex Jebel Ali or ex anywhere else in the UAE; both price
-// the same cross-border export declaration. Free-zone-specific fees (SAIF /
-// DAFZA) are keyed off the pickup-emirate field, not this one.
+// the same cross-border export declaration.
 const ORIGIN_OPTIONS = ['Jebel Ali', 'UAE'];
+
+// Readable names for the FTL equipment keys carried on the rate card.
+const EQUIPMENT_LABELS: Record<string, string> = {
+  'closed-box-13.6': 'Closed box 13.6 m',
+  'reefer-13.6': 'Reefer 13.6 m',
+  'closed-box-15': 'Closed box 15 m',
+  '3T': '3 Ton',
+  '7-10T': '7 / 10 Ton',
+};
+const equipLabel = (k: string) => EQUIPMENT_LABELS[k] ?? k;
 
 interface PieceRow {
   lengthCm: string;
@@ -73,8 +82,6 @@ interface FormState {
   originalDocsReceived: boolean;
   insure: boolean;
   cargoValueAed: string;
-  pickupEmirate: string;
-  pickupTruckType: string;
   customer: string;
 }
 
@@ -98,8 +105,6 @@ const initialForm: FormState = {
   originalDocsReceived: true,
   insure: false,
   cargoValueAed: '',
-  pickupEmirate: '',
-  pickupTruckType: '',
   customer: '',
 };
 
@@ -169,21 +174,13 @@ export function QuoteView({ contractId, contract, company }: Props) {
 
   const isFlat = !!currentLane?.flatRates;
 
-  // Equipment carried on the lane but with no rate (null) — flatbed / low-bed —
-  // is priced from a carrier buy rate the user types in.
-  const equipRate = isFlat
-    ? currentLane!.flatRates![form.equipment]
-    : undefined;
-  const equipQuoteBased =
-    isFlat &&
-    form.equipment in (currentLane!.flatRates ?? {}) &&
-    (equipRate === null || equipRate === 0);
-
+  // A lane the engine can't rate-card itself (air / sea / customs, or no lane
+  // matched) needs a carrier buy rate typed in. Land LTL / FTL / LOCAL are all
+  // priced from the Aramex / White Eagle schedules.
   const isQuoteBased =
     !currentLane ||
     currentLane.quoteBased === true ||
-    (!currentLane.breaks && !currentLane.flatRates) ||
-    equipQuoteBased;
+    (!currentLane.breaks && !currentLane.flatRates);
 
   const equipmentOptions = useMemo(
     () => (isFlat ? Object.keys(currentLane!.flatRates!) : []),
@@ -241,8 +238,6 @@ export function QuoteView({ contractId, contract, company }: Props) {
         originalDocsReceived: form.originalDocsReceived,
         insure: form.insure,
         cargoValueAed: num(form.cargoValueAed),
-        pickupEmirate: form.pickupEmirate || undefined,
-        pickupTruckType: form.pickupTruckType || undefined,
       },
     };
     if (form.cargoMode === 'pieces') {
@@ -412,14 +407,14 @@ export function QuoteView({ contractId, contract, company }: Props) {
 
             {isFlat && (
               <label className="field">
-                Equipment
+                Truck / equipment
                 <select
                   value={form.equipment}
                   onChange={(e) => set('equipment', e.target.value)}
                 >
                   {equipmentOptions.map((k) => (
                     <option key={k} value={k}>
-                      {k}
+                      {equipLabel(k)}
                     </option>
                   ))}
                 </select>
@@ -428,7 +423,7 @@ export function QuoteView({ contractId, contract, company }: Props) {
 
             {isQuoteBased && (
               <label className="field">
-                Carrier buy rate{isFlat ? ' (per truck)' : ''}
+                Carrier buy rate
                 <input
                   type="number"
                   min="0"
@@ -438,9 +433,7 @@ export function QuoteView({ contractId, contract, company }: Props) {
                   onChange={(e) => set('buyRate', e.target.value)}
                 />
                 <span className="hint">
-                  {equipQuoteBased
-                    ? `${form.equipment} isn’t on the rate schedule — enter the carrier’s quoted rate per truck.`
-                    : 'This lane is quote-based — enter the rate the carrier quoted you.'}
+                  This lane is quote-based — enter the rate the carrier quoted you.
                 </span>
               </label>
             )}
@@ -610,49 +603,20 @@ export function QuoteView({ contractId, contract, company }: Props) {
                 ))}
             </div>
 
-            <div className="row3">
-              <label className="field">
-                Cargo value (AED)
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.cargoValueAed}
-                  onChange={(e) => set('cargoValueAed', e.target.value)}
-                />
-                <span className="hint">
-                  Used for insurance and, on cross-border moves, a 5%
-                  customs-duty estimate shown separately (not in the total).
-                </span>
-              </label>
-              <label className="field">
-                Pickup emirate
-                <select
-                  value={form.pickupEmirate}
-                  onChange={(e) => set('pickupEmirate', e.target.value)}
-                >
-                  <option value="">—</option>
-                  <option>Sharjah</option>
-                  <option>Sharjah - Hamriya</option>
-                  <option>Ajman</option>
-                  <option>UAQ</option>
-                  <option>RAK</option>
-                  <option>Fujairah</option>
-                </select>
-              </label>
-              <label className="field">
-                Pickup truck
-                <select
-                  value={form.pickupTruckType}
-                  onChange={(e) => set('pickupTruckType', e.target.value)}
-                >
-                  <option value="">—</option>
-                  <option value="3T">3 Ton</option>
-                  <option value="10T">10 Ton</option>
-                  <option value="40FT">40ft trailer</option>
-                </select>
-              </label>
-            </div>
+            <label className="field">
+              Cargo value (AED)
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.cargoValueAed}
+                onChange={(e) => set('cargoValueAed', e.target.value)}
+              />
+              <span className="hint">
+                Used for insurance and, on cross-border moves, a 5%
+                customs-duty estimate shown separately (not in the total).
+              </span>
+            </label>
           </div>
 
           <div className="fg">
