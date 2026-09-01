@@ -22,7 +22,7 @@ export interface Lane {
   destination: string;
   minCharge?: number;
   breaks?: Break[];
-  flatRates?: Record<string, number>;
+  flatRates?: Record<string, number | null>;
   quoteBased?: boolean;
 }
 
