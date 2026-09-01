@@ -68,6 +68,7 @@ export function renderQuoteHtml(q, contract, company = null) {
     ? `<div class="pay"><strong>Payment</strong>${nl2br(co.bank_details)}</div>` : '';
 
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quotation ${esc(q.ref)}</title>
 <style>
   :root { --ink:#172033; --soft:#46536a; --muted:#7b8598; --line:#e3e8ef; --accent:#2f56d9; }
@@ -112,6 +113,14 @@ export function renderQuoteHtml(q, contract, company = null) {
   footer { margin-top: 30px; font-size: 12px; color: var(--soft); }
   footer strong { color: var(--ink); }
   footer ul { margin: 6px 0 12px; padding-left: 18px; }
+  @media (max-width: 640px) {
+    body { padding: 20px 16px; }
+    header, .title-row { flex-direction: column; gap: 10px; }
+    .co-contact, .meta-r { text-align: left; }
+    .grid { grid-template-columns: 1fr; gap: 2px 0; margin: 18px 0; }
+    h1 { font-size: 18px; }
+    th, td { padding: 9px 6px; }
+  }
   @media print { body { padding: 0; } .noprint { display: none; } }
 </style></head>
 <body><div class="sheet">
