@@ -45,21 +45,66 @@ function ltl(destination, minCharge, perKgByBreak, transitDays) {
   };
 }
 
+// Truck / trailer types NOT on the signed Aramex schedule. Priced at an
+// INDICATIVE UAE-market level as a multiple of the lane's main rate — these
+// are estimates, not contracted. Edit them per lane in the Tariff screen once
+// firm rates are agreed with the carrier.
+const TRUCK_FACTORS = {
+  '3-ton':         0.50,
+  '5-ton':         0.60,
+  '7-ton':         0.70,
+  '10-ton':        0.82,
+  '12-ton':        0.92,
+  'flatbed-13m':   1.00,
+  'flatbed-13.6m': 1.05,
+  'lowbed-2axle':  1.35,
+  'lowbed-3axle':  1.65,
+  'lowbed-4axle':  2.00,
+  'lowbed-ext':    2.60,
+};
+// Keys that ARE contracted, per service type — used by the UI to flag the rest
+// as indicative.
+export const CONTRACTED_EQUIPMENT = {
+  FTL: ['closed-box-13.6', 'reefer-13.6', 'closed-box-15'],
+  LOCAL: ['3-ton', '7-ton', '10-ton'],
+};
+
+const round5 = (n) => Math.round(Number(n) / 5) * 5;
+
 function ftl(destination, flatRates, transitDays) {
   // origin null — valid for pick-up from any UAE point (see ltl()).
-  // Only the equipment on the signed Aramex schedule is offered; every FTL
-  // lane is priced automatically from these flat rates.
+  // The three closed-box / reefer rates are the signed Aramex schedule; the
+  // rigid trucks, flatbeds and low-beds are scaled off the 13.6 m box rate.
+  const anchor = Number(flatRates['closed-box-13.6']) || Object.values(flatRates)[0];
+  const indicative = {};
+  for (const [k, f] of Object.entries(TRUCK_FACTORS)) indicative[k] = round5(anchor * f);
   return {
     mode: 'land', loadType: 'FTL', origin: null, destination, currency: 'AED',
-    flatRates: { ...flatRates },
+    flatRates: { ...flatRates, ...indicative },
     transitDays,
   };
 }
 
 function local(from, to, r3t, r7t) {
+  // r3t / r7t are the White Eagle contracted 3-ton and 7/10-ton trip rates.
+  // Larger trucks and specialised trailers are scaled off the 7/10-ton rate
+  // (indicative — see TRUCK_FACTORS note).
   return {
     mode: 'land', loadType: 'LOCAL', origin: from, destination: to,
-    currency: 'AED', flatRates: { '3T': r3t, '7-10T': r7t },
+    currency: 'AED',
+    flatRates: {
+      '3-ton': r3t,
+      '5-ton': round5((r3t + r7t) / 2),
+      '7-ton': r7t,
+      '10-ton': r7t,
+      '12-ton': round5(r7t * 1.15),
+      'flatbed-13m': round5(r7t * 1.40),
+      'flatbed-13.6m': round5(r7t * 1.45),
+      'lowbed-2axle': round5(r7t * 1.60),
+      'lowbed-3axle': round5(r7t * 1.90),
+      'lowbed-4axle': round5(r7t * 2.30),
+      'lowbed-ext': round5(r7t * 3.00),
+    },
   };
 }
 
@@ -150,6 +195,7 @@ export const defaultTariff = {
       'LTL rates include a 10% fuel surcharge on the per-kg base; documentation (BOE) charges are added per shipment by origin.',
       'LTL pick-up from other Emirates / Dubai areas / remote areas: additional AED 0.50/kg or higher depending on area.',
       'FTL rates apply to branded / bonded trucks; non-branded trucks incur 3rd-party brokerage / in-transit fees at actual cost.',
+      'FTL / local truck types other than the 13.6 m closed box, reefer 13.6 m and 15 m closed box (3–12 Ton rigid, flatbed, low-bed) are shown at indicative UAE-market rates, not contracted — confirm with the carrier before issuing.',
       'KSA transit visa for BAH / KWI / DOH (in-transit immigration) is excluded; added at cost if reinstated.',
       'Local (intra-UAE) moves are priced per trip by truck size — 3 Ton or 7/10 Ton. Free 1 hour at each stuffing / destuffing site; waiting, split deliveries, cancellation and detention charged per the schedule. Tolls (Salik) not included.',
       'Insurance excluded — available at 2.5% of C&F invoice value, subject to T&C.',

@@ -36,15 +36,31 @@ const LOAD_TYPES: Record<string, [string, string][]> = {
 // the same cross-border export declaration.
 const ORIGIN_OPTIONS = ['Jebel Ali', 'UAE'];
 
-// Readable names for the FTL equipment keys carried on the rate card.
+// Readable names for the FTL / LOCAL truck & equipment keys.
 const EQUIPMENT_LABELS: Record<string, string> = {
   'closed-box-13.6': 'Closed box 13.6 m',
   'reefer-13.6': 'Reefer 13.6 m',
   'closed-box-15': 'Closed box 15 m',
-  '3T': '3 Ton',
-  '7-10T': '7 / 10 Ton',
+  '3-ton': '3 Ton',
+  '5-ton': '5 Ton',
+  '7-ton': '7 Ton',
+  '10-ton': '10 Ton',
+  '12-ton': '12 Ton',
+  'flatbed-13m': 'Flatbed 13 m',
+  'flatbed-13.6m': 'Flatbed 13.6 m',
+  'lowbed-2axle': 'Low-bed 2-axle',
+  'lowbed-3axle': 'Low-bed 3-axle',
+  'lowbed-4axle': 'Low-bed 4-axle',
+  'lowbed-ext': 'Extendable low-bed',
 };
 const equipLabel = (k: string) => EQUIPMENT_LABELS[k] ?? k;
+
+// Equipment keys that carry a contracted rate; everything else on a lane is an
+// indicative UAE-market estimate (kept in sync with seed-tariff.mjs).
+const CONTRACTED_EQUIPMENT: Record<string, Set<string>> = {
+  FTL: new Set(['closed-box-13.6', 'reefer-13.6', 'closed-box-15']),
+  LOCAL: new Set(['3-ton', '7-ton', '10-ton']),
+};
 
 interface PieceRow {
   lengthCm: string;
@@ -185,6 +201,12 @@ export function QuoteView({ contractId, contract, company }: Props) {
     !currentLane ||
     currentLane.quoteBased === true ||
     (!currentLane.breaks && !currentLane.flatRates);
+
+  // true when the chosen truck has an indicative (non-contracted) rate
+  const equipIndicative =
+    isFlat &&
+    !!form.equipment &&
+    !(CONTRACTED_EQUIPMENT[form.loadType] ?? new Set<string>()).has(form.equipment);
 
   const equipmentOptions = useMemo(
     () => (isFlat ? Object.keys(currentLane!.flatRates!) : []),
@@ -425,6 +447,12 @@ export function QuoteView({ contractId, contract, company }: Props) {
                     </option>
                   ))}
                 </select>
+                {equipIndicative && (
+                  <span className="hint">
+                    Indicative UAE-market rate — not from the signed contract.
+                    Confirm with the carrier before issuing.
+                  </span>
+                )}
               </label>
             )}
 

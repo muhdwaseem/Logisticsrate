@@ -81,26 +81,58 @@ test('FTL RUH via Batha, reefer 13.6m — flat 6460, no FSC on FTL', () => {
   assert.equal(q.lines.some(l => l.code === 'FSC'), false);
 });
 
-test('FTL — every lane offers only the three rate-carded trailer types', () => {
+test('FTL — every lane carries the 13.6 m box rate plus the full indicative truck list', () => {
   const ftl = defaultTariff.lanes.filter(l => l.loadType === 'FTL');
   assert.ok(ftl.length > 0);
-  const allowed = new Set(['closed-box-13.6', 'reefer-13.6', 'closed-box-15']);
+  const indicative = ['3-ton', '5-ton', '7-ton', '10-ton', '12-ton',
+    'flatbed-13m', 'flatbed-13.6m', 'lowbed-2axle', 'lowbed-3axle', 'lowbed-4axle', 'lowbed-ext'];
   for (const lane of ftl) {
-    for (const key of Object.keys(lane.flatRates)) {
-      assert.ok(allowed.has(key), `${lane.destination} has unexpected equipment ${key}`);
-      assert.equal(typeof lane.flatRates[key], 'number');
+    assert.ok(lane.flatRates['closed-box-13.6'] > 0, `${lane.destination} missing closed-box-13.6`);
+    for (const key of indicative) {
+      assert.ok(key in lane.flatRates, `${lane.destination} missing ${key}`);
       assert.ok(lane.flatRates[key] > 0);
     }
   }
 });
 
+test('FTL — the contracted Aramex rates are untouched by the indicative additions', () => {
+  const bah = defaultTariff.lanes.find(l => l.loadType === 'FTL' && l.destination === 'BAH');
+  assert.equal(bah.flatRates['closed-box-13.6'], 6150);
+  assert.equal(bah.flatRates['reefer-13.6'], 7350);
+  assert.equal(bah.flatRates['closed-box-15'], 6700);
+});
+
+test('FTL 10-ton — indicative rate ≈ 0.82 × the 13.6 m box rate for the lane', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'FTL', origin: 'Jebel Ali', destination: 'BAH',
+    equipment: '10-ton', containers: 1, options: { applyVat: false },
+  }, DATA);
+  // 6150 × 0.82 = 5043 → rounded to nearest 5 = 5045
+  assert.equal(q.lines.find(l => l.code === 'BASE').amount, 5045);
+  assert.equal(q.meta.laneMatched, true);
+  assert.equal(q.warnings.length, 0);
+});
+
 test('FTL — an unknown equipment key warns and does not price', () => {
   const q = computeQuote({
     mode: 'land', loadType: 'FTL', origin: 'Jebel Ali', destination: 'RUH via Batha',
-    equipment: 'flatbed', containers: 1, options: { applyVat: false },
+    equipment: 'spaceship', containers: 1, options: { applyVat: false },
   }, DATA);
-  assert.equal(q.warnings.some(w => /flatbed/.test(w)), true);
+  assert.equal(q.warnings.some(w => /spaceship/.test(w)), true);
   assert.equal(q.lines.find(l => l.code === 'BASE').amount, 0);
+});
+
+test('LOCAL — larger trucks are offered; 3-ton / 7-ton stay the contracted trip rate', () => {
+  const lane = defaultTariff.lanes.find(l => l.loadType === 'LOCAL' && l.origin === 'Jebel Ali' && l.destination === 'Sharjah');
+  assert.equal(lane.flatRates['3-ton'], 350);   // contracted
+  assert.equal(lane.flatRates['7-ton'], 600);   // contracted
+  assert.ok(lane.flatRates['lowbed-3axle'] > lane.flatRates['7-ton']);
+  const q = computeQuote({
+    mode: 'land', loadType: 'LOCAL', origin: 'Jebel Ali', destination: 'Sharjah',
+    equipment: 'lowbed-2axle', containers: 1, options: { applyVat: false },
+  }, DATA);
+  assert.equal(q.lines.find(l => l.code === 'BASE').amount, 960); // 600 × 1.6
+  assert.equal(q.warnings.length, 0);
 });
 
 test('Air freight — quote-based lane prices from manual buyRate + markup', () => {
@@ -193,7 +225,7 @@ test('Transit days from the service schedule are exposed on the result', () => {
 test('White Eagle local — per-trip flat rate by truck size', () => {
   const q3 = computeQuote({
     mode: 'land', loadType: 'LOCAL', origin: 'Jebel Ali', destination: 'Dubai',
-    equipment: '3T', containers: 1, options: { applyVat: true },
+    equipment: '3-ton', containers: 1, options: { applyVat: true },
   }, WE);
   const base = q3.lines.find(l => l.code === 'BASE');
   assert.equal(base.amount, 275);                     // JA -> Dubai, 3 Ton
@@ -202,7 +234,7 @@ test('White Eagle local — per-trip flat rate by truck size', () => {
 
   const q7x2 = computeQuote({
     mode: 'land', loadType: 'LOCAL', origin: 'DWC', destination: 'Dubai',
-    equipment: '7-10T', containers: 2, options: { applyVat: false },
+    equipment: '7-ton', containers: 2, options: { applyVat: false },
   }, WE);
   assert.equal(q7x2.lines.find(l => l.code === 'BASE').amount, 1100); // 550 x 2 trucks
 });
@@ -210,11 +242,11 @@ test('White Eagle local — per-trip flat rate by truck size', () => {
 test('White Eagle local — origin selects the right lane for a shared destination', () => {
   const fromJA = computeQuote({
     mode: 'land', loadType: 'LOCAL', origin: 'Jebel Ali', destination: 'Sharjah',
-    equipment: '3T', containers: 1, options: { applyVat: false },
+    equipment: '3-ton', containers: 1, options: { applyVat: false },
   }, WE);
   const fromDWC = computeQuote({
     mode: 'land', loadType: 'LOCAL', origin: 'DWC', destination: 'Sharjah',
-    equipment: '3T', containers: 1, options: { applyVat: false },
+    equipment: '3-ton', containers: 1, options: { applyVat: false },
   }, WE);
   assert.equal(fromJA.lines.find(l => l.code === 'BASE').amount, 350);
   assert.equal(fromDWC.lines.find(l => l.code === 'BASE').amount, 400);
@@ -223,7 +255,7 @@ test('White Eagle local — origin selects the right lane for a shared destinati
 test('White Eagle local — manual add-on charge (customs seal) applies when picked', () => {
   const q = computeQuote({
     mode: 'land', loadType: 'LOCAL', origin: 'Jebel Ali', destination: 'Ajman',
-    equipment: '7-10T', containers: 1, selectedAccessorials: ['WE_CUSTOMS_SEAL'],
+    equipment: '7-ton', containers: 1, selectedAccessorials: ['WE_CUSTOMS_SEAL'],
     options: { applyVat: false },
   }, WE);
   assert.equal(q.lines.find(l => l.code === 'WE_CUSTOMS_SEAL').amount, 100);
@@ -260,7 +292,7 @@ test('BOE documentation applies to any non-duty-paid cross-border origin', () =>
   // a local trip never carries an export BOE
   const local = computeQuote({
     mode: 'land', loadType: 'LOCAL', origin: 'Jebel Ali', destination: 'Ajman',
-    equipment: '3T', containers: 1, options: { applyVat: false },
+    equipment: '3-ton', containers: 1, options: { applyVat: false },
   }, DATA);
   assert.equal(local.lines.some(l => /^BOE/.test(l.code || '')), false);
 });
@@ -268,7 +300,7 @@ test('BOE documentation applies to any non-duty-paid cross-border origin', () =>
 test('quote lines carry an auto / optional source tag', () => {
   const q = computeQuote({
     mode: 'land', loadType: 'LOCAL', origin: 'Jebel Ali', destination: 'Ajman',
-    equipment: '7-10T', containers: 1, selectedAccessorials: ['WE_CUSTOMS_SEAL'],
+    equipment: '7-ton', containers: 1, selectedAccessorials: ['WE_CUSTOMS_SEAL'],
     options: { applyVat: false, insure: true, cargoValueAed: 20000 },
   }, DATA);
   assert.equal(q.lines.find(l => l.code === 'WE_CUSTOMS_SEAL').source, 'optional');
@@ -384,7 +416,7 @@ test('Customs duty — 5% of cargo value, shown but excluded from the total', ()
 test('Customs duty — never applied to a local intra-UAE trip', () => {
   const q = computeQuote({
     mode: 'land', loadType: 'LOCAL', origin: 'DWC', destination: 'Sharjah',
-    equipment: '7-10T', containers: 1,
+    equipment: '7-ton', containers: 1,
     options: { applyVat: true, cargoValueAed: 250000 },
   }, DATA);
   assert.equal(q.lines.some(l => l.code === 'CUSTOMS_DUTY_EST'), false);
