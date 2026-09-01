@@ -73,7 +73,11 @@ export interface QuoteResult {
   quoteCurrency: string;
   chargeableKg?: number | null;
   chargeable?: { basis?: string; volumeCbm?: number };
-  meta?: { laneMatched?: boolean; transitDays?: number | null };
+  meta?: {
+    laneMatched?: boolean;
+    transitDays?: number | null;
+    suggestedTruck?: string | null;
+  };
   lines?: QuoteLine[];
   subtotal: number;
   tax?: QuoteTax;
@@ -149,7 +153,6 @@ export interface QuoteRequest {
     originalDocsReceived: boolean;
     insure: boolean;
     cargoValueAed: number;
-    goodsInvoiceValueAed?: number;
     pickupEmirate?: string;
     pickupTruckType?: string;
   };

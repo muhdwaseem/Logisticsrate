@@ -41,7 +41,7 @@ export function renderQuoteHtml(q, contract, company = null) {
 
   const meta = [
     ['Customer', esc(q.customer || '—')],
-    ['Mode', `${esc(req.mode)} · ${esc(req.loadType || '')}`],
+    ['Service', `${esc(req.mode)} · ${esc(req.loadType || '')}`],
     ['Origin', esc(req.origin || '—')],
     ['Destination', esc(req.destination || '—')],
     ['Incoterm', esc(r.meta?.incoterm || co.default_incoterm || 'EXW')],

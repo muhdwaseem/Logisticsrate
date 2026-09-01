@@ -73,6 +73,28 @@ export function chargeableWeight({ mode, pieces = [], grossWeightKg = null, volu
   };
 }
 
+/**
+ * Suggest the smallest single vehicle that fits a consignment, from its gross
+ * weight and volume. Indicative only — a dispatcher still confirms against the
+ * actual footprint / stackability. Returns null when nothing has been entered.
+ */
+export function suggestTruck({ grossKg = 0, volumeCbm = 0 } = {}) {
+  const kg = Number(grossKg) || 0;
+  const cbm = Number(volumeCbm) || 0;
+  if (kg <= 0 && cbm <= 0) return null;
+  const ladder = [
+    { truck: '1 Ton pickup',   kg: 1000,  cbm: 3.5 },
+    { truck: '3 Ton truck',    kg: 3000,  cbm: 15 },
+    { truck: '7 Ton truck',    kg: 7000,  cbm: 28 },
+    { truck: '10 Ton truck',   kg: 12000, cbm: 40 },
+    { truck: '40 ft trailer',  kg: 27000, cbm: 76 },
+  ];
+  for (const step of ladder) {
+    if (kg <= step.kg && cbm <= step.cbm) return step.truck;
+  }
+  return 'Multiple trucks / part-load';
+}
+
 /** Pick the per-unit rate for a quantity from an ascending list of breaks.
  *  breaks: [{ upTo: number|null, rate: number }]  (null upTo = "and above") */
 export function pickRateBreak(breaks, qty) {
@@ -124,9 +146,9 @@ const PREDICATES = {
   // whose origin isn't SAIF Zone / DAFZA (those have their own higher fee).
   if_xborder_nonduty: (r) => xborder(r) && !r.options?.originDutyPaid
     && !/saif/i.test(r.origin || '') && !/dafza/i.test(r.origin || ''),
-  // customs duty estimate — cross-border only, and only once the forwarder
-  // enters the goods' invoice value. Informational: excluded from the total.
-  if_goods_invoice_value: (r) => xborder(r) && Number(r.options?.goodsInvoiceValueAed) > 0,
+  // customs duty estimate — cross-border only, and only once a cargo value is
+  // entered. Informational: excluded from the total.
+  if_cargo_value: (r) => xborder(r) && Number(r.options?.cargoValueAed) > 0,
   if_sea_docs_not_received: (r) => r.mode === 'sea' && r.options?.originalDocsReceived === false,
   manual: (r, acc) => Array.isArray(r.selectedAccessorials) && r.selectedAccessorials.includes(acc.code),
 };
@@ -137,7 +159,6 @@ function accessorialAmount(acc, ctx) {
   switch (acc.basis) {
     case 'percent_of_base':   return { qty: 1, unit: '%', amount: round2(ctx.baseSell * rate / 100) };
     case 'percent_of_value':  return { qty: 1, unit: '%', amount: round2((Number(ctx.request.options?.cargoValueAed) || 0) * rate / 100) };
-    case 'percent_of_invoice_value': return { qty: 1, unit: '%', amount: round2((Number(ctx.request.options?.goodsInvoiceValueAed) || 0) * rate / 100) };
     case 'per_kg':            return { qty: ctx.chargeableKg, unit: 'kg', amount: round2(ctx.chargeableKg * rate) };
     case 'per_container':     return { qty: ctx.containers, unit: 'cntr', amount: round2(ctx.containers * rate) };
     case 'per_shipment':      return { qty: 1, unit: 'shpt', amount: round2(rate) };
@@ -336,6 +357,7 @@ export function computeQuote(request, contractData, company = null) {
         Number(contract.validityDays) || Number(company?.default_validity_days) || 14,
       ).toISOString().slice(0, 10),
       laneMatched: !!lane,
+      suggestedTruck: suggestTruck({ grossKg: cw.grossKg, volumeCbm: cw.volumeCbm }),
       notes: contract.notes || [],
       footerNotes: company?.quote_footer_notes || [],
     },
