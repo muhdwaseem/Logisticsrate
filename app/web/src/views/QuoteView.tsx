@@ -130,6 +130,10 @@ export function QuoteView({ contractId, contract, company }: Props) {
 
   type BoolKey = 'applyVat' | 'dangerousGoods' | 'originDutyPaid' | 'insure';
   const isLocal = form.loadType === 'LOCAL';
+  // FTL (whole truck) and LOCAL (per-trip flat) price off the equipment /
+  // destination, not the cargo's weight or size — so the piece list is only
+  // shown for LTL and air/sea, where chargeable weight drives the rate.
+  const cargoByWeight = form.loadType !== 'FTL' && form.loadType !== 'LOCAL';
   const boolChecks: [BoolKey, string][] = [
     ['applyVat', `Apply ${company?.tax_label || 'VAT'}`],
     ['dangerousGoods', 'Dangerous goods'],
@@ -315,12 +319,15 @@ export function QuoteView({ contractId, contract, company }: Props) {
   const ccy = result?.quoteCurrency ?? form.quoteCurrency;
   const chips: { text: string; kind?: 'oklike' | 'warnlike' }[] = [];
   if (result && result.chargeableKg != null) {
-    chips.push({
-      text: `Chargeable ${result.chargeableKg} ${form.mode === 'sea' ? 'RT' : 'kg'}`,
-    });
-    if (result.chargeable?.basis) chips.push({ text: result.chargeable.basis });
-    if (result.chargeable?.volumeCbm)
-      chips.push({ text: `${result.chargeable.volumeCbm} CBM` });
+    // FTL / LOCAL don't price by weight — skip the chargeable-weight chips.
+    if (cargoByWeight && result.chargeableKg > 0) {
+      chips.push({
+        text: `Chargeable ${result.chargeableKg} ${form.mode === 'sea' ? 'RT' : 'kg'}`,
+      });
+      if (result.chargeable?.basis) chips.push({ text: result.chargeable.basis });
+      if (result.chargeable?.volumeCbm)
+        chips.push({ text: `${result.chargeable.volumeCbm} CBM` });
+    }
     chips.push(
       result.meta?.laneMatched
         ? { text: 'lane matched', kind: 'oklike' }
@@ -439,6 +446,7 @@ export function QuoteView({ contractId, contract, company }: Props) {
             )}
           </div>
 
+          {cargoByWeight && (
           <div className="fg">
             <div className="fg-head">
               <h3>Cargo</h3>
@@ -569,6 +577,7 @@ export function QuoteView({ contractId, contract, company }: Props) {
               </p>
             )}
           </div>
+          )}
 
           <div className="fg">
             <div className="fg-head">
