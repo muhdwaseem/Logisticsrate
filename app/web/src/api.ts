@@ -153,8 +153,6 @@ export interface QuoteRequest {
     originalDocsReceived: boolean;
     insure: boolean;
     cargoValueAed: number;
-    pickupEmirate?: string;
-    pickupTruckType?: string;
   };
   pieces?: PieceInput[];
   grossWeightKg?: number;

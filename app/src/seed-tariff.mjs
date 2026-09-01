@@ -45,23 +45,13 @@ function ltl(destination, minCharge, perKgByBreak, transitDays) {
   };
 }
 
-// Equipment that isn't on the signed rate schedule: offered on every FTL lane
-// but priced per shipment — a null rate tells the engine to use the carrier
-// buy rate the forwarder keys in. Covers trailer variants plus the smaller
-// rigid trucks a full-truck-load booking might call for.
-const QUOTE_BASED_FTL_EQUIPMENT = {
-  'flatbed': null,
-  'low-bed': null,
-  '3 Ton': null,
-  '7 Ton': null,
-  '10 Ton': null,
-};
-
 function ftl(destination, flatRates, transitDays) {
   // origin null — valid for pick-up from any UAE point (see ltl()).
+  // Only the equipment on the signed Aramex schedule is offered; every FTL
+  // lane is priced automatically from these flat rates.
   return {
     mode: 'land', loadType: 'FTL', origin: null, destination, currency: 'AED',
-    flatRates: { ...flatRates, ...QUOTE_BASED_FTL_EQUIPMENT },
+    flatRates: { ...flatRates },
     transitDays,
   };
 }
