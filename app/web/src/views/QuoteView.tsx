@@ -180,10 +180,22 @@ export function QuoteView({ contractId, contract, company }: Props) {
   );
 
   const isFlat = !!currentLane?.flatRates;
+
+  // Equipment carried on the lane but with no rate (null) — flatbed / low-bed —
+  // is priced from a carrier buy rate the user types in.
+  const equipRate = isFlat
+    ? currentLane!.flatRates![form.equipment]
+    : undefined;
+  const equipQuoteBased =
+    isFlat &&
+    form.equipment in (currentLane!.flatRates ?? {}) &&
+    (equipRate === null || equipRate === 0);
+
   const isQuoteBased =
     !currentLane ||
     currentLane.quoteBased === true ||
-    (!currentLane.breaks && !currentLane.flatRates);
+    (!currentLane.breaks && !currentLane.flatRates) ||
+    equipQuoteBased;
 
   const equipmentOptions = useMemo(
     () => (isFlat ? Object.keys(currentLane!.flatRates!) : []),
@@ -448,7 +460,7 @@ export function QuoteView({ contractId, contract, company }: Props) {
 
             {isQuoteBased && (
               <label className="field">
-                Carrier buy rate
+                Carrier buy rate{isFlat ? ' (per truck)' : ''}
                 <input
                   type="number"
                   min="0"
@@ -458,7 +470,9 @@ export function QuoteView({ contractId, contract, company }: Props) {
                   onChange={(e) => set('buyRate', e.target.value)}
                 />
                 <span className="hint">
-                  This lane is quote-based — enter the rate the carrier quoted you.
+                  {equipQuoteBased
+                    ? `${form.equipment} isn’t on the rate schedule — enter the carrier’s quoted rate per truck.`
+                    : 'This lane is quote-based — enter the rate the carrier quoted you.'}
                 </span>
               </label>
             )}

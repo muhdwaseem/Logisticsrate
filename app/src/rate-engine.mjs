@@ -211,8 +211,16 @@ export function computeQuote(request, contractData, company = null) {
   } else if (lane && lane.flatRates) {
     // Flat per-equipment tariff (FTL / FCL)
     const key = request.equipment;
+    const hasKey = Object.prototype.hasOwnProperty.call(lane.flatRates, key);
     const flat = Number(lane.flatRates[key]);
-    if (!flat) {
+    if (hasKey && (lane.flatRates[key] === null || flat === 0)) {
+      // Equipment offered on the lane but not rate-carded (flatbed / low-bed):
+      // price per shipment from the carrier buy rate the forwarder keys in.
+      const perTruck = Number(request.buyRate) || 0;
+      baseBuy = round2(perTruck * containers);
+      baseDetail = `${containers} × ${perTruck} (${key}, quoted)`;
+      if (!perTruck) warnings.push(`"${key}" is quoted per shipment — enter the carrier buy rate ("buyRate") to price it.`);
+    } else if (!flat) {
       warnings.push(`No flat rate for equipment "${key}" on lane ${request.destination}. Options: ${Object.keys(lane.flatRates).join(', ')}`);
     } else {
       baseBuy = round2(flat * containers);

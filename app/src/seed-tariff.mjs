@@ -45,9 +45,18 @@ function ltl(destination, minCharge, perKgByBreak, transitDays) {
   };
 }
 
+// Equipment that isn't on the signed rate schedule: offered on every FTL lane
+// but priced per shipment — a null rate tells the engine to use the carrier
+// buy rate the forwarder keys in.
+const QUOTE_BASED_FTL_EQUIPMENT = { 'flatbed': null, 'low-bed': null };
+
 function ftl(destination, flatRates, transitDays) {
   // origin null — valid for pick-up from any UAE point (see ltl()).
-  return { mode: 'land', loadType: 'FTL', origin: null, destination, currency: 'AED', flatRates, transitDays };
+  return {
+    mode: 'land', loadType: 'FTL', origin: null, destination, currency: 'AED',
+    flatRates: { ...flatRates, ...QUOTE_BASED_FTL_EQUIPMENT },
+    transitDays,
+  };
 }
 
 function local(from, to, r3t, r7t) {

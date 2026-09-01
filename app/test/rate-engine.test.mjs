@@ -81,6 +81,30 @@ test('FTL RUH via Batha, reefer 13.6m — flat 6460, no FSC on FTL', () => {
   assert.equal(q.lines.some(l => l.code === 'FSC'), false);
 });
 
+test('FTL flatbed — not rate-carded, prices per truck from carrier buy rate', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'FTL', origin: 'Jebel Ali', destination: 'RUH via Batha',
+    equipment: 'flatbed', containers: 2, buyRate: 4000,
+    markupType: 'percent', markupValue: 15, options: { applyVat: false },
+  }, DATA);
+  const base = q.lines.find(l => l.code === 'BASE');
+  assert.equal(base.amount, 9200);            // 4000 * 2 = 8000, + 15% markup
+  assert.equal(base.detail.includes('flatbed'), true);
+  assert.equal(q.meta.laneMatched, true);
+  assert.equal(q.lines.some(l => l.code === 'FSC'), false);
+  assert.equal(q.warnings.length, 0);
+});
+
+test('FTL low-bed — missing carrier buy rate warns instead of pricing at 0', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'FTL', origin: 'Jebel Ali', destination: 'DHA via Batha',
+    equipment: 'low-bed', containers: 1, options: { applyVat: false },
+  }, DATA);
+  assert.equal(q.warnings.some(w => /low-bed/.test(w)), true);
+  const base = q.lines.find(l => l.code === 'BASE');
+  assert.equal(base.amount, 0);
+});
+
 test('Air freight — quote-based lane prices from manual buyRate + markup', () => {
   const q = computeQuote({
     mode: 'air', loadType: 'GENERAL', destination: 'Air - any destination',
@@ -273,6 +297,17 @@ test('seed tariff — combined UAE land transport (cross-border + local)', () =>
   const types = new Set(defaultTariff.lanes.map(l => l.loadType));
   assert.ok(types.has('LTL') && types.has('FTL') && types.has('LOCAL'));
   assert.equal(defaultTariff.contract.currency, 'AED');
+});
+
+test('seed tariff — every FTL lane offers flatbed + low-bed as quote-based equipment', () => {
+  const ftl = defaultTariff.lanes.filter(l => l.loadType === 'FTL');
+  assert.ok(ftl.length > 0);
+  for (const lane of ftl) {
+    assert.ok('flatbed' in lane.flatRates, `${lane.destination} missing flatbed`);
+    assert.ok('low-bed' in lane.flatRates, `${lane.destination} missing low-bed`);
+    assert.equal(lane.flatRates['flatbed'], null);
+    assert.equal(lane.flatRates['low-bed'], null);
+  }
 });
 
 // ---- Phase A: Company Profile & configurable tax --------------------------
