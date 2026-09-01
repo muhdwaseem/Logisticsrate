@@ -124,6 +124,9 @@ const PREDICATES = {
   // whose origin isn't SAIF Zone / DAFZA (those have their own higher fee).
   if_xborder_nonduty: (r) => xborder(r) && !r.options?.originDutyPaid
     && !/saif/i.test(r.origin || '') && !/dafza/i.test(r.origin || ''),
+  // customs duty estimate — cross-border only, and only once the forwarder
+  // enters the goods' invoice value. Informational: excluded from the total.
+  if_goods_invoice_value: (r) => xborder(r) && Number(r.options?.goodsInvoiceValueAed) > 0,
   if_sea_docs_not_received: (r) => r.mode === 'sea' && r.options?.originalDocsReceived === false,
   manual: (r, acc) => Array.isArray(r.selectedAccessorials) && r.selectedAccessorials.includes(acc.code),
 };
@@ -134,6 +137,7 @@ function accessorialAmount(acc, ctx) {
   switch (acc.basis) {
     case 'percent_of_base':   return { qty: 1, unit: '%', amount: round2(ctx.baseSell * rate / 100) };
     case 'percent_of_value':  return { qty: 1, unit: '%', amount: round2((Number(ctx.request.options?.cargoValueAed) || 0) * rate / 100) };
+    case 'percent_of_invoice_value': return { qty: 1, unit: '%', amount: round2((Number(ctx.request.options?.goodsInvoiceValueAed) || 0) * rate / 100) };
     case 'per_kg':            return { qty: ctx.chargeableKg, unit: 'kg', amount: round2(ctx.chargeableKg * rate) };
     case 'per_container':     return { qty: ctx.containers, unit: 'cntr', amount: round2(ctx.containers * rate) };
     case 'per_shipment':      return { qty: 1, unit: 'shpt', amount: round2(rate) };
@@ -289,15 +293,19 @@ export function computeQuote(request, contractData, company = null) {
       currency: acc.currency || laneCurrency,
       amount: convert(amount, acc.currency || laneCurrency, quoteCurrency, fx),
       amountOriginal: amount,
-      // 'auto' = derived from the shipment details; 'optional' = the user
-      // ticked it in the Optional charges list (a manual accessorial).
-      source: acc.appliesWhen === 'manual' ? 'optional' : 'auto',
+      // 'auto'      = derived from the shipment details
+      // 'optional'  = the user ticked it in the Optional charges list
+      // 'estimate'  = informational (customs duty) — not part of the total
+      source: acc.appliesWhen === 'manual' ? 'optional' : (acc.informational ? 'estimate' : 'auto'),
+      informational: !!acc.informational,
     });
   }
 
   // 6. Totals & tax
   // Resolution order: request → tariff → company → built-in.
-  const subtotal = round2(sum(lines.map(l => l.amount)));
+  // informational lines (customs duty estimate) never enter the freight
+  // subtotal, and therefore never attract VAT or land in the total.
+  const subtotal = round2(sum(lines.filter(l => !l.informational).map(l => l.amount)));
   const taxMode = contract.taxMode || company?.tax_mode || 'exclusive';
   const taxLabel = contract.taxLabel || company?.tax_label || 'VAT';
   const taxPct =

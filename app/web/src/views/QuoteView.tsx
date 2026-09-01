@@ -81,6 +81,7 @@ interface FormState {
   originalDocsReceived: boolean;
   insure: boolean;
   cargoValueAed: string;
+  goodsInvoiceValueAed: string;
   pickupEmirate: string;
   pickupTruckType: string;
   customer: string;
@@ -106,6 +107,7 @@ const initialForm: FormState = {
   originalDocsReceived: true,
   insure: false,
   cargoValueAed: '',
+  goodsInvoiceValueAed: '',
   pickupEmirate: '',
   pickupTruckType: '',
   customer: '',
@@ -272,6 +274,7 @@ export function QuoteView({ contractId, contract, company }: Props) {
         originalDocsReceived: form.originalDocsReceived,
         insure: form.insure,
         cargoValueAed: num(form.cargoValueAed),
+        goodsInvoiceValueAed: num(form.goodsInvoiceValueAed),
         pickupEmirate: form.pickupEmirate || undefined,
         pickupTruckType: form.pickupTruckType || undefined,
       },
@@ -647,6 +650,20 @@ export function QuoteView({ contractId, contract, company }: Props) {
                 />
               </label>
               <label className="field">
+                Goods invoice value (AED)
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.goodsInvoiceValueAed}
+                  onChange={(e) => set('goodsInvoiceValueAed', e.target.value)}
+                />
+                <span className="hint">
+                  Adds a 5% customs-duty estimate (cross-border only), shown
+                  separately — not part of the quoted total.
+                </span>
+              </label>
+              <label className="field">
                 Pickup emirate
                 <select
                   value={form.pickupEmirate}
@@ -776,7 +793,9 @@ export function QuoteView({ contractId, contract, company }: Props) {
                     </tr>
                   </thead>
                   <tbody>
-                    {(result.lines ?? []).map((l, i) => (
+                    {(result.lines ?? [])
+                      .filter((l) => !l.informational)
+                      .map((l, i) => (
                       <tr key={i}>
                         <td>
                           {l.label}
@@ -825,6 +844,17 @@ export function QuoteView({ contractId, contract, company }: Props) {
                   </tfoot>
                 </table>
               </div>
+
+              {(result.lines ?? [])
+                .filter((l) => l.informational)
+                .map((l, i) => (
+                  <div className="est-note" key={i}>
+                    <span>
+                      {l.label}
+                    </span>
+                    <strong>{money(l.amount, ccy)}</strong>
+                  </div>
+                ))}
 
               {result.warnings && result.warnings.length > 0 && (
                 <div className="warn">

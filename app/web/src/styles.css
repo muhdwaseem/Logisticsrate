@@ -355,6 +355,14 @@ table.breakdown tfoot .total td {
 .warn ul { margin: 6px 0 0; padding-left: 18px; }
 .warn li { margin: 2px 0; }
 
+.est-note {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  margin-top: 12px; padding: 10px 14px;
+  background: var(--panel-2); border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm); font-size: 12px; color: var(--muted);
+}
+.est-note strong { color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
 .saved-info {
   margin-top: 16px; padding: 13px 15px;
   background: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 32%, transparent);

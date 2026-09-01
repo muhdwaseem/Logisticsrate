@@ -58,7 +58,8 @@ export interface QuoteLine {
   amount: number;
   currency?: string;
   amountOriginal?: number;
-  source?: 'auto' | 'optional';
+  source?: 'auto' | 'optional' | 'estimate';
+  informational?: boolean;
 }
 
 export interface QuoteTax {
@@ -148,6 +149,7 @@ export interface QuoteRequest {
     originalDocsReceived: boolean;
     insure: boolean;
     cargoValueAed: number;
+    goodsInvoiceValueAed?: number;
     pickupEmirate?: string;
     pickupTruckType?: string;
   };
