@@ -47,8 +47,15 @@ function ltl(destination, minCharge, perKgByBreak, transitDays) {
 
 // Equipment that isn't on the signed rate schedule: offered on every FTL lane
 // but priced per shipment — a null rate tells the engine to use the carrier
-// buy rate the forwarder keys in.
-const QUOTE_BASED_FTL_EQUIPMENT = { 'flatbed': null, 'low-bed': null };
+// buy rate the forwarder keys in. Covers trailer variants plus the smaller
+// rigid trucks a full-truck-load booking might call for.
+const QUOTE_BASED_FTL_EQUIPMENT = {
+  'flatbed': null,
+  'low-bed': null,
+  '3 Ton': null,
+  '7 Ton': null,
+  '10 Ton': null,
+};
 
 function ftl(destination, flatRates, transitDays) {
   // origin null — valid for pick-up from any UAE point (see ltl()).
@@ -211,11 +218,11 @@ export const defaultTariff = {
     acc('BOE_OMAN_STATISTICAL', 'Oman statistical BOE / export declaration',       'land', 'per_shipment', 195, 'AED', 'if_dest_oman'),
 
     // Customs duty — NOT a carrier charge. Shown only as an estimate for the
-    // client's landed-cost picture when a goods invoice value is supplied, and
-    // kept OUT of the freight subtotal / VAT / total. GCC common external tariff
-    // 5%, charged on the goods' invoice value only (freight & insurance are not
-    // added to the duty base here).
-    acc('CUSTOMS_DUTY_EST', 'Customs duty (estimate, 5% of goods invoice value) — payable to Customs, not to carrier', 'land', 'percent_of_invoice_value', 5, 'AED', 'if_goods_invoice_value', true),
+    // client's landed-cost picture when a cargo value is entered, and kept OUT
+    // of the freight subtotal / VAT / total. GCC common external tariff 5%,
+    // charged on the cargo (goods) value only — freight & insurance are not
+    // added to the duty base here.
+    acc('CUSTOMS_DUTY_EST', 'Customs duty (estimate, 5% of cargo value) — payable to Customs, not to carrier', 'land', 'percent_of_value', 5, 'AED', 'if_cargo_value', true),
 
     // Kuwait (NAS) LTL destination charges — contract states amounts in KWD
     acc('KUWAIT_DO',  'Kuwait delivery order (NAS)',  'land', 'per_shipment', 7,      'KWD', 'if_dest_kuwait'),

@@ -32,18 +32,10 @@ const LOAD_TYPES: Record<string, [string, string][]> = {
   customs: [['CLEARANCE', 'Customs clearance']],
 };
 
-const ORIGIN_SUGGESTIONS = [
-  'Jebel Ali',
-  'Dubai',
-  'DWC',
-  'Sharjah - SAIF Zone',
-  'Sharjah - Hamriya',
-  'DAFZA',
-  'Ajman',
-  'Umm Al Quwain',
-  'Ras Al Khaimah',
-  'Fujairah',
-];
+// The forwarder quotes ex Jebel Ali or ex anywhere else in the UAE; both price
+// the same cross-border export declaration. Free-zone-specific fees (SAIF /
+// DAFZA) are keyed off the pickup-emirate field, not this one.
+const ORIGIN_OPTIONS = ['Jebel Ali', 'UAE'];
 
 interface PieceRow {
   lengthCm: string;
@@ -81,7 +73,6 @@ interface FormState {
   originalDocsReceived: boolean;
   insure: boolean;
   cargoValueAed: string;
-  goodsInvoiceValueAed: string;
   pickupEmirate: string;
   pickupTruckType: string;
   customer: string;
@@ -107,7 +98,6 @@ const initialForm: FormState = {
   originalDocsReceived: true,
   insure: false,
   cargoValueAed: '',
-  goodsInvoiceValueAed: '',
   pickupEmirate: '',
   pickupTruckType: '',
   customer: '',
@@ -145,10 +135,6 @@ export function QuoteView({ contractId, contract, company }: Props) {
 
   const lanes: Lane[] = useMemo(
     () => contract?.data?.lanes ?? [],
-    [contract],
-  );
-  const accessorials = useMemo(
-    () => contract?.data?.accessorials ?? [],
     [contract],
   );
 
@@ -204,17 +190,6 @@ export function QuoteView({ contractId, contract, company }: Props) {
     [isFlat, currentLane],
   );
 
-  const manualAccessorials = useMemo(
-    () =>
-      accessorials.filter(
-        (a) =>
-          a.appliesWhen === 'manual' &&
-          (!a.mode || a.mode === 'any' || a.mode === form.mode),
-      ),
-    [accessorials, form.mode],
-  );
-  const [selectedAccessorials, setSelectedAccessorials] = useState<string[]>([]);
-
   // ----- keep dependent selections valid when their option sets change -----
   useEffect(() => {
     const opts = LOAD_TYPES[form.mode] ?? [];
@@ -245,14 +220,6 @@ export function QuoteView({ contractId, contract, company }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [equipKey]);
 
-  const manualKey = manualAccessorials.map((a) => a.code).join('|');
-  useEffect(() => {
-    setSelectedAccessorials((sel) =>
-      sel.filter((c) => manualAccessorials.some((a) => a.code === c)),
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manualKey]);
-
   // ----- request assembly -----
   const request: QuoteRequest = useMemo(() => {
     const req: QuoteRequest = {
@@ -266,7 +233,7 @@ export function QuoteView({ contractId, contract, company }: Props) {
       markupType: form.markupType || undefined,
       markupValue: num(form.markupValue),
       quoteCurrency: form.quoteCurrency,
-      selectedAccessorials,
+      selectedAccessorials: [],
       options: {
         applyVat: form.applyVat,
         dangerousGoods: form.dangerousGoods,
@@ -274,7 +241,6 @@ export function QuoteView({ contractId, contract, company }: Props) {
         originalDocsReceived: form.originalDocsReceived,
         insure: form.insure,
         cargoValueAed: num(form.cargoValueAed),
-        goodsInvoiceValueAed: num(form.goodsInvoiceValueAed),
         pickupEmirate: form.pickupEmirate || undefined,
         pickupTruckType: form.pickupTruckType || undefined,
       },
@@ -294,7 +260,7 @@ export function QuoteView({ contractId, contract, company }: Props) {
       req.volumeCbm = num(form.volumeCbm);
     }
     return req;
-  }, [form, pieces, selectedAccessorials, isFlat, isQuoteBased]);
+  }, [form, pieces, isFlat, isQuoteBased]);
 
   const lastRequest = useRef(request);
   lastRequest.current = request;
@@ -389,7 +355,7 @@ export function QuoteView({ contractId, contract, company }: Props) {
 
             <div className={isFlat ? 'row2' : ''}>
               <label className="field">
-                Load type
+                Service type
                 <select
                   value={form.loadType}
                   onChange={(e) => set('loadType', e.target.value)}
@@ -418,17 +384,16 @@ export function QuoteView({ contractId, contract, company }: Props) {
             <div className="row2">
               <label className="field">
                 Origin
-                <input
+                <select
                   value={form.origin}
-                  list="originList"
-                  autoComplete="off"
                   onChange={(e) => set('origin', e.target.value)}
-                />
-                <datalist id="originList">
-                  {ORIGIN_SUGGESTIONS.map((o) => (
-                    <option key={o} value={o} />
+                >
+                  {ORIGIN_OPTIONS.map((o) => (
+                    <option key={o} value={o}>
+                      {o}
+                    </option>
                   ))}
-                </datalist>
+                </select>
               </label>
               <label className="field">
                 Destination
@@ -603,6 +568,13 @@ export function QuoteView({ contractId, contract, company }: Props) {
                 </label>
               </div>
             )}
+
+            {result?.meta?.suggestedTruck && (
+              <p className="hint truck-hint">
+                Suggested vehicle: <strong>{result.meta.suggestedTruck}</strong>{' '}
+                — indicative, based on weight &amp; volume entered above.
+              </p>
+            )}
           </div>
 
           <div className="fg">
@@ -648,19 +620,9 @@ export function QuoteView({ contractId, contract, company }: Props) {
                   value={form.cargoValueAed}
                   onChange={(e) => set('cargoValueAed', e.target.value)}
                 />
-              </label>
-              <label className="field">
-                Goods invoice value (AED)
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.goodsInvoiceValueAed}
-                  onChange={(e) => set('goodsInvoiceValueAed', e.target.value)}
-                />
                 <span className="hint">
-                  Adds a 5% customs-duty estimate (cross-border only), shown
-                  separately — not part of the quoted total.
+                  Used for insurance and, on cross-border moves, a 5%
+                  customs-duty estimate shown separately (not in the total).
                 </span>
               </label>
               <label className="field">
@@ -691,34 +653,6 @@ export function QuoteView({ contractId, contract, company }: Props) {
                 </select>
               </label>
             </div>
-
-            {manualAccessorials.length > 0 && (
-              <div className="checks">
-                <strong>Optional charges</strong>
-                {manualAccessorials.map((a) => (
-                  <label className="check" key={a.code}>
-                    <input
-                      type="checkbox"
-                      checked={selectedAccessorials.includes(a.code)}
-                      onChange={(e) =>
-                        setSelectedAccessorials((sel) =>
-                          e.target.checked
-                            ? [...sel, a.code]
-                            : sel.filter((c) => c !== a.code),
-                        )
-                      }
-                    />{' '}
-                    {a.label}
-                    {a.rate ? (
-                      <span className="muted">
-                        {' '}
-                        ({a.currency} {a.rate})
-                      </span>
-                    ) : null}
-                  </label>
-                ))}
-              </div>
-            )}
           </div>
 
           <div className="fg">

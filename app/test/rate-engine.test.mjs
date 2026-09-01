@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chargeableWeight, pickRateBreak, computeQuote, round2, convert } from '../src/rate-engine.mjs';
+import { chargeableWeight, pickRateBreak, computeQuote, round2, convert, suggestTruck } from '../src/rate-engine.mjs';
 import { defaultTariff } from '../src/seed-tariff.mjs';
 
 const DATA = {
@@ -103,6 +103,18 @@ test('FTL low-bed — missing carrier buy rate warns instead of pricing at 0', (
   assert.equal(q.warnings.some(w => /low-bed/.test(w)), true);
   const base = q.lines.find(l => l.code === 'BASE');
   assert.equal(base.amount, 0);
+});
+
+test('FTL 10 Ton — a rigid truck size, also quote-based like flatbed/low-bed', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'FTL', origin: 'Jebel Ali', destination: 'RUH via Batha',
+    equipment: '10 Ton', containers: 1, buyRate: 2500,
+    markupType: 'percent', markupValue: 15, options: { applyVat: false },
+  }, DATA);
+  const base = q.lines.find(l => l.code === 'BASE');
+  assert.equal(base.amount, 2875);            // 2500 + 15% markup
+  assert.equal(base.detail.includes('10 Ton'), true);
+  assert.equal(q.meta.laneMatched, true);
 });
 
 test('Air freight — quote-based lane prices from manual buyRate + markup', () => {
@@ -299,14 +311,15 @@ test('seed tariff — combined UAE land transport (cross-border + local)', () =>
   assert.equal(defaultTariff.contract.currency, 'AED');
 });
 
-test('seed tariff — every FTL lane offers flatbed + low-bed as quote-based equipment', () => {
+test('seed tariff — every FTL lane offers flatbed/low-bed/3-7-10 Ton as quote-based equipment', () => {
   const ftl = defaultTariff.lanes.filter(l => l.loadType === 'FTL');
   assert.ok(ftl.length > 0);
+  const quoteBased = ['flatbed', 'low-bed', '3 Ton', '7 Ton', '10 Ton'];
   for (const lane of ftl) {
-    assert.ok('flatbed' in lane.flatRates, `${lane.destination} missing flatbed`);
-    assert.ok('low-bed' in lane.flatRates, `${lane.destination} missing low-bed`);
-    assert.equal(lane.flatRates['flatbed'], null);
-    assert.equal(lane.flatRates['low-bed'], null);
+    for (const key of quoteBased) {
+      assert.ok(key in lane.flatRates, `${lane.destination} missing ${key}`);
+      assert.equal(lane.flatRates[key], null);
+    }
   }
 });
 
@@ -363,23 +376,23 @@ test('Phase A — company supplies incoterm & validity fallbacks', () => {
   assert.equal(q.meta.footerNotes[0], 'ex works note');
 });
 
-// ---- Customs duty estimate (informational, off unless invoice value set) ----
+// ---- Customs duty estimate (informational, off unless a cargo value is set) ----
 
 const REQ_XB_LTL = {
   mode: 'land', loadType: 'LTL', origin: 'Jebel Ali', destination: 'KSA - Riyadh',
   grossWeightKg: 1500, options: { applyVat: true },
 };
 
-test('Customs duty — absent unless a goods invoice value is supplied', () => {
+test('Customs duty — absent unless a cargo value is supplied', () => {
   const q = computeQuote(REQ_XB_LTL, DATA);
   assert.equal(q.lines.some(l => l.code === 'CUSTOMS_DUTY_EST'), false);
 });
 
-test('Customs duty — 5% of goods invoice value, shown but excluded from the total', () => {
+test('Customs duty — 5% of cargo value, shown but excluded from the total', () => {
   const base = computeQuote(REQ_XB_LTL, DATA);
   const withDuty = computeQuote({
     ...REQ_XB_LTL,
-    options: { ...REQ_XB_LTL.options, goodsInvoiceValueAed: 100000 },
+    options: { ...REQ_XB_LTL.options, cargoValueAed: 100000 },
   }, DATA);
 
   const duty = withDuty.lines.find(l => l.code === 'CUSTOMS_DUTY_EST');
@@ -398,7 +411,31 @@ test('Customs duty — never applied to a local intra-UAE trip', () => {
   const q = computeQuote({
     mode: 'land', loadType: 'LOCAL', origin: 'DWC', destination: 'Sharjah',
     equipment: '7-10T', containers: 1,
-    options: { applyVat: true, goodsInvoiceValueAed: 250000 },
+    options: { applyVat: true, cargoValueAed: 250000 },
   }, DATA);
   assert.equal(q.lines.some(l => l.code === 'CUSTOMS_DUTY_EST'), false);
+});
+
+// ---- Suggested vehicle (indicative, from weight & volume) ----
+
+test('suggestTruck — null with nothing entered', () => {
+  assert.equal(suggestTruck({}), null);
+  assert.equal(suggestTruck({ grossKg: 0, volumeCbm: 0 }), null);
+});
+
+test('suggestTruck — steps up the ladder by weight and by volume', () => {
+  assert.equal(suggestTruck({ grossKg: 800, volumeCbm: 1 }), '1 Ton pickup');
+  assert.equal(suggestTruck({ grossKg: 2500, volumeCbm: 2 }), '3 Ton truck');
+  assert.equal(suggestTruck({ grossKg: 500, volumeCbm: 20 }), '7 Ton truck'); // volume-led
+  assert.equal(suggestTruck({ grossKg: 9000, volumeCbm: 5 }), '10 Ton truck');
+  assert.equal(suggestTruck({ grossKg: 20000, volumeCbm: 60 }), '40 ft trailer');
+  assert.equal(suggestTruck({ grossKg: 30000, volumeCbm: 5 }), 'Multiple trucks / part-load');
+});
+
+test('computeQuote — meta.suggestedTruck reflects the priced consignment', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'LTL', origin: 'Jebel Ali', destination: 'KSA - Riyadh',
+    grossWeightKg: 2500, options: { applyVat: false },
+  }, DATA);
+  assert.equal(q.meta.suggestedTruck, '3 Ton truck');
 });
