@@ -21,13 +21,18 @@ export function renderQuoteHtml(q, contract, company = null) {
 
   const hasIdentity = !!(co.legal_name || co.display_name || co.logo || co.address || co.tax_id);
 
-  const rows = (r.lines || []).map(l => `
+  const allLines = r.lines || [];
+  const rows = allLines.filter(l => !l.informational).map(l => `
     <tr>
       <td>${esc(l.label)}${l.source === 'optional' ? ' <span class="opt">(optional)</span>' : ''}${l.detail ? `<div class="sub">${esc(l.detail)}</div>` : ''}</td>
       <td class="num">${esc(l.qty)} ${esc(l.unit || '')}</td>
       <td class="num">${l.currency && l.currency !== ccy ? esc(l.currency) + ' ' + Number(l.amountOriginal).toLocaleString('en-US', { minimumFractionDigits: 2 }) : ''}</td>
       <td class="num">${money(l.amount, ccy)}</td>
     </tr>`).join('');
+
+  // informational lines (customs duty estimate) — not part of the total
+  const estBlock = allLines.filter(l => l.informational).map(l =>
+    `<div class="est"><span>${esc(l.label)}</span><strong>${money(l.amount, ccy)}</strong></div>`).join('');
 
   const noteItems = [...(r.meta?.notes || []), ...(r.meta?.footerNotes || [])];
   const notes = noteItems.map(n => `<li>${esc(n)}</li>`).join('');
@@ -107,6 +112,10 @@ export function renderQuoteHtml(q, contract, company = null) {
   .warn { background: #fff7e9; border: 1px solid #ecc57e; color: #7a5312; border-radius: 8px;
           padding: 11px 15px; margin-top: 18px; font-size: 13px; }
   .warn ul { margin: 6px 0 0; padding-left: 18px; }
+  .est { display: flex; justify-content: space-between; gap: 16px; margin-top: 10px;
+         padding: 9px 14px; border: 1px dashed #cfd6e1; border-radius: 8px;
+         font-size: 12px; color: var(--muted); }
+  .est strong { color: var(--soft); white-space: nowrap; }
   .pay { margin-top: 22px; padding: 13px 15px; background: #f6f8fb; border: 1px solid var(--line);
          border-radius: 8px; font-size: 12.5px; color: var(--soft); }
   .pay strong { display: block; margin-bottom: 4px; color: var(--ink); }
@@ -151,6 +160,7 @@ export function renderQuoteHtml(q, contract, company = null) {
     </tfoot>
   </table>
 
+  ${estBlock}
   ${warns}
   ${payBlock}
 

@@ -362,3 +362,43 @@ test('Phase A — company supplies incoterm & validity fallbacks', () => {
   assert.equal(q.meta.incoterm, 'DAP');
   assert.equal(q.meta.footerNotes[0], 'ex works note');
 });
+
+// ---- Customs duty estimate (informational, off unless invoice value set) ----
+
+const REQ_XB_LTL = {
+  mode: 'land', loadType: 'LTL', origin: 'Jebel Ali', destination: 'KSA - Riyadh',
+  grossWeightKg: 1500, options: { applyVat: true },
+};
+
+test('Customs duty — absent unless a goods invoice value is supplied', () => {
+  const q = computeQuote(REQ_XB_LTL, DATA);
+  assert.equal(q.lines.some(l => l.code === 'CUSTOMS_DUTY_EST'), false);
+});
+
+test('Customs duty — 5% of goods invoice value, shown but excluded from the total', () => {
+  const base = computeQuote(REQ_XB_LTL, DATA);
+  const withDuty = computeQuote({
+    ...REQ_XB_LTL,
+    options: { ...REQ_XB_LTL.options, goodsInvoiceValueAed: 100000 },
+  }, DATA);
+
+  const duty = withDuty.lines.find(l => l.code === 'CUSTOMS_DUTY_EST');
+  assert.ok(duty, 'duty line present');
+  assert.equal(duty.amount, 5000);          // 5% of 100,000
+  assert.equal(duty.informational, true);
+  assert.equal(duty.source, 'estimate');
+
+  // freight subtotal / VAT / total are identical with or without the estimate
+  assert.equal(withDuty.subtotal, base.subtotal);
+  assert.equal(withDuty.tax.amount, base.tax.amount);
+  assert.equal(withDuty.total, base.total);
+});
+
+test('Customs duty — never applied to a local intra-UAE trip', () => {
+  const q = computeQuote({
+    mode: 'land', loadType: 'LOCAL', origin: 'DWC', destination: 'Sharjah',
+    equipment: '7-10T', containers: 1,
+    options: { applyVat: true, goodsInvoiceValueAed: 250000 },
+  }, DATA);
+  assert.equal(q.lines.some(l => l.code === 'CUSTOMS_DUTY_EST'), false);
+});

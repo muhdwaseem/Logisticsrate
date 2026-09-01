@@ -70,8 +70,8 @@ function quoteLane(mode, loadType, destination) {
   return { mode, loadType, origin: null, destination, currency: 'AED', quoteBased: true };
 }
 
-function acc(code, label, mode, basis, rate, currency, appliesWhen) {
-  return { code, label, mode, basis, rate, currency, appliesWhen };
+function acc(code, label, mode, basis, rate, currency, appliesWhen, informational = false) {
+  return { code, label, mode, basis, rate, currency, appliesWhen, ...(informational ? { informational: true } : {}) };
 }
 
 function collection(zone, truckType, rate) {
@@ -209,6 +209,13 @@ export const defaultTariff = {
     acc('BOE_SAIF',             'Export declaration — SAIF Zone',                  'any', 'per_shipment', 300, 'AED', 'if_origin_saif'),
     acc('BOE_DAFZA',            'Export declaration — DAFZA',                      'any', 'per_shipment', 325, 'AED', 'if_origin_dafza'),
     acc('BOE_OMAN_STATISTICAL', 'Oman statistical BOE / export declaration',       'land', 'per_shipment', 195, 'AED', 'if_dest_oman'),
+
+    // Customs duty — NOT a carrier charge. Shown only as an estimate for the
+    // client's landed-cost picture when a goods invoice value is supplied, and
+    // kept OUT of the freight subtotal / VAT / total. GCC common external tariff
+    // 5%, charged on the goods' invoice value only (freight & insurance are not
+    // added to the duty base here).
+    acc('CUSTOMS_DUTY_EST', 'Customs duty (estimate, 5% of goods invoice value) — payable to Customs, not to carrier', 'land', 'percent_of_invoice_value', 5, 'AED', 'if_goods_invoice_value', true),
 
     // Kuwait (NAS) LTL destination charges — contract states amounts in KWD
     acc('KUWAIT_DO',  'Kuwait delivery order (NAS)',  'land', 'per_shipment', 7,      'KWD', 'if_dest_kuwait'),
