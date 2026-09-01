@@ -210,7 +210,8 @@ input:focus, select:focus, textarea:focus {
 
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-@media (max-width: 620px) { .row2, .row3 { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .row3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .row2, .row3 { grid-template-columns: 1fr; } }
 
 .seg { display: flex; gap: 4px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
 .seg .radio {
@@ -466,6 +467,65 @@ textarea { min-height: 76px; resize: vertical; }
   display: block; max-height: 60px; max-width: 220px; object-fit: contain;
   margin-top: 10px; border: 1px solid var(--line); border-radius: var(--radius-xs);
   padding: 8px; background: var(--panel-2);
+}
+
+/* ---------- wide tables scroll instead of crushing on small screens ---------- */
+@media (max-width: 760px) {
+  table.grid { min-width: 660px; }
+  table.breakdown { min-width: 380px; }
+  .rate-block table { min-width: 460px; }
+}
+
+/* ---------- tablet / stacked layout ---------- */
+@media (max-width: 980px) {
+  /* once the two columns stack, a sticky result panel just fights the scroll */
+  .result { position: static; top: auto; }
+}
+
+/* ---------- phones ---------- */
+@media (max-width: 640px) {
+  main { margin: 14px auto; padding: 0 12px 56px; }
+  .cols { gap: 16px; }
+
+  .topbar { padding: 10px 12px; gap: 10px; }
+  .brand { flex: 1 1 auto; gap: 10px; }
+  .logo { width: 32px; height: 32px; }
+  .brand-text strong {
+    font-size: 13px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .brand-text small { max-width: 42vw; }
+  .tabs { padding: 2px; }
+  .tab { padding: 7px 11px; font-size: 12px; }
+
+  /* tighten card gutters */
+  .card > .card-head,
+  .card > .fg,
+  .card > .actions,
+  .card > #ratesSummary,
+  .card > .json-editor,
+  .card > .table-wrap { padding-left: 16px; padding-right: 16px; }
+  .result .card-head { padding-left: 16px; padding-right: 16px; }
+  .result > .chargeable,
+  .result > .table-wrap,
+  .result > .warn,
+  .result > .saved-info,
+  .result > .empty { margin-left: 16px; margin-right: 16px; }
+
+  .fg-head { flex-wrap: wrap; }
+  .view.settings .card { margin-inline: 0; }
+
+  /* 16px controls stop iOS Safari from zooming in on focus */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select, textarea { font-size: 16px; }
+
+  .actions { gap: 10px; }
+  .btn { padding: 10px 16px; }
+}
+
+@media (max-width: 380px) {
+  .tabs { gap: 0; }
+  .tab { padding: 7px 9px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
